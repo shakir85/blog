@@ -1,0 +1,57 @@
+baseURL: ""
+languageCode: en-us
+title: blog.shakir.cloud
+theme: "PaperMod"
+
+params:
+  # profileMode:
+  #     enabled: true
+  #     title: Shakir
+  #     description: |
+  #       Hello, I am Shakir.
+  #       I am a DevOps engineer.
+  #       This is my blog v 0.0.1-alpha!
+  #     imageUrl: "/images/profile.png"
+  #     imageTitle: my image
+  #     imageWidth: 120
+  #     imageHeight: 120
+  homeInfoParams:
+    Title: "Hello world!"
+    Content: | # support multi-line
+        I'm Shakir. I am a DevOps engineer. Welcome to my blog v 0.0.1-alpha!
+
+  socialIcons:
+    - name: gitlab
+      url: "https://gitlab.com/shakir85/"
+    - name: github
+      url: "https://github.com/shakir85"
+    - name: linkedin
+      url: "https://www.linkedin.com/in/almasaari/"
+    - name: goodreads
+      url: " https://www.goodreads.com/shakir5289"
+
+  cover:
+    linkFullImages: true
+  author: Shakir Almasaari
+  ShowBreadCrumbs: true
+  ShowShareButtons: true
+  ShowReadingTime: true
+  displayFullLangName: true
+  ShowCodeCopyButtons: true
+  ShowToc: false # Show table of content
+  ShowPostNavLinks: true # Next button at post end
+
+menu:
+  main:
+    - identifier: categories
+      name: Categories
+      url: /categories/
+      weight: 10
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+    - identifier: archives
+      name: Archives
+      url: /archives/
+      weight: 30
