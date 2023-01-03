@@ -1,5 +1,5 @@
 ## Blog
-This repo hosts my personal blog code built using [Hugo](https://gohugo.io/) static site generator.
+This repo hosts my blog code built using [Hugo](https://gohugo.io/) static site generator.
 
 ## How to run
 - Install git 
