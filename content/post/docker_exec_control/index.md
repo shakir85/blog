@@ -1,7 +1,7 @@
 ---
 title: "Optimizing Dockerfile execution flow" 
 description: "Handing over operation from `ENTRYPOINT` to `CMD`"
-date: 2023-05-13T21:34:49-07:00
+date: 2023-07-16T17:34:13-07:00
 categories: ["linux", "docker"]
 tags: ["grasping essentials"]
 draft: false
