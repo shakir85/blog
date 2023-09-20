@@ -75,9 +75,9 @@ root@cd3dd0afeb53:/# which echo
 /usr/bin/echo
 
 root@cd3dd0afeb53:/# ldd /usr/bin/echo
-	linux-vdso.so.1 (0x00007ffe99d81000)
-	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fecf34c3000)
-	/lib64/ld-linux-x86-64.so.2 (0x00007fecf36f9000)
+    linux-vdso.so.1 (0x00007ffe99d81000)
+    libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fecf34c3000)
+    /lib64/ld-linux-x86-64.so.2 (0x00007fecf36f9000)
 ```
 
 The output shows the `echo` command's dependencies. So basically, the `libc` library and a special object `vdso`, provided by the kernel, must be in the container; and without them, the `echo` command will not work.
