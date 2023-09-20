@@ -2,7 +2,6 @@
 title: "Control the default gateway In a dual NIC host"
 date: 2023-05-13T21:34:49-07:00
 # slug: hello-world
-date: 2023-08-16T23:17:40-07:00
 # image: cover.jpg
 categories: ["linux", "networking"]
 tags: ["how to"]
