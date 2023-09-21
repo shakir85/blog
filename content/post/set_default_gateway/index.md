@@ -2,7 +2,6 @@
 title: "Control the default gateway In a dual NIC host"
 date: 2023-05-13T21:34:49-07:00
 # slug: hello-world
-date: 2023-08-16T23:17:40-07:00
 # image: cover.jpg
 categories: ["linux", "networking"]
 tags: ["how to"]
@@ -12,9 +11,7 @@ draft: false
 
 ## Intro
 
-Having multiple network interfaces on a single host can offer several benefits, such as network redundancy, bandwidth increase, and recovery from network failover. However, they can also present challenges, such as the need for proper gateway configuration.
-
-Although having multiple NICs on a single host provides access to more than one gateway, the host operating system will only use one interface's gateways as the *default gateway* for the outbound traffic.
+Having multiple network interfaces on a single host can offer several benefits, such as network redundancy, bandwidth increase, and recovery from network failover. However, they can also present challenges, such as the need for proper gateway configuration because the host operating system will only select one interface's gateways as the *default gateway* for the outbound traffic.
 
 In this blog post, we'll explore how to set the default gateway for a specific interface while keeping the second one for LAN traffic only on a dual network interface host.
 
@@ -22,21 +19,19 @@ In this blog post, we'll explore how to set the default gateway for a specific i
 
 ## Setting the stage
 
-I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one as an Ethernet port, and the other serves as a wifi device.
+I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one as is an ethernet port, and the other is a wifi device.
 
 !["ThinkCenter M710q Mini PC"](25112651.jpeg)
 
-This arrangement allows the machine to connect to two distinct publicly accessible IP addresses, essentially granting both interfaces the ability to access the external network via two separate gateways.
+This arrangement allows the host to connect to two distinct publicly routable IP addresses via two different gateways. Since I have access to two networks, my plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic.
 
-Since I have access to two different networks, I plan to connect the host to both networks. The ethernet port will be used for local networking, and the internet traffic will be routed through the wifi interface.
+To accomplish this goal, we must let the host always use the wifi's gateway as the *default gateway*. The reason is default gateways are reponsible for allowing the host to communicate with other networks (in our case the internet).
 
-To accomplish this goal, we must let the host always use the wifi's gateway as the *default gateway*.
-
-Finally, each router advertises IPs on different subnets. This is very important to avoid IP address overlapping. The wifi interface is on a `172.20.13.xxx/16` subnet and the ethernet interface is on a `10.10.50.xxx/24` subnet. 
+It is important to note the subnets that each router is using to advertise local IPs to avoid IP conflicts. For me, the wifi interface is on a `172.20.13.xxx/16` subnet and the ethernet interface is on a `10.10.50.xxx/24` subnet.
 
 ## Gateway and interfaces configuration
 
-First, make sure that each interface is connected to its corresponding network and has been assigned a DHCP IP address from its respective gateway.
+First, make sure that each interface is connected to its corresponding network and has been assigned a DHCP IP from its respective gateway.
 
 ### 1. Identify the interfaces
 
@@ -61,7 +56,7 @@ user@host:~$ ip addr
        valid_lft 70380sec preferred_lft 70380sec
 ```
 
-I have two active interfaces in the output above; both are up, and each has been assigned a DHCP IP from its respective gateway:
+In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP from its respective gateway:
 
 1. Ethernet interface: `enp0s31f6`
 2. Wifi interface: `wlp2s0`
@@ -85,9 +80,9 @@ From the output above, each interface has the following information
 
 ### 3. Reset the default gateway
 
-The operating system currently uses `10.10.50.10` as the default gateway. To switch the default gateway to `172.20.1.1`, we need to delete the first gateway and then set the second one as the default gateway.
+The operating system currently uses `10.10.50.10` as the default gateway. To switch the default gateway to `172.20.1.1`, we need to delete the default gateway and then set the second one as the default gateway.
 
-Since each gateway represents a publicly routable IP address, let's take note of the current public IP address on the host before updating the gateways:
+Since each gateway represents a publicly routable IP address, let's take note of the current public IP address on the host before deleting/updating the gateways:
 
 ```text
 user@host:~$ curl ifconfig.me
