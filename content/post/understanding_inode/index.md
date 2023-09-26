@@ -24,9 +24,9 @@ In Unix-like operating systems, an inode (short for "index node") is a data stru
 
 In this post, I'll cover the essentials of inodes – how to identify issues tied to them, and ways to troubleshoot. Keep in mind that inodes can become quite complex becose they touch various parts of the filesystem and storage structure. So for the sake of keeping this post simple, we won't dive into all those complexities.
 
-## Why the system we needs something like inodes?
+## Why the system needs something like inodes?
 
-When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file's metadata as well as its location of data blocks on the disk.This is in general. The specific implementation and terminology may vary slightly depending on the filesystem and the OS version.
+When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file's metadata and the data-blocks location on the disk. This is in general. The specific implementation and terminology may vary slightly depending on the filesystem type and the OS version.
 
 Therefore, an inode is allocated to store the file (or directory) metadata, which allow the filesystem to properly manage file access and storage. This also make operations like finding files by name, checking permissions, and tracking file sizes easy for the OS.
 
