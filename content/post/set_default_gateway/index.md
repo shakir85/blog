@@ -9,25 +9,16 @@ tags: ["how to"]
 draft: false
 ---
 
-## Intro
+Having multiple network interfaces on one machine can be pretty handy. It gives you network backup and helps you bounce back if the network gets a bit erratic. So, in this post, I'll walk you through setting up a 'default gateway' on one interface to handle outbound traffic (internet), while keeping the second one reserved just for LAN networking. Also, I'll share some quirky bits I had to figure out along the way
 
-Having multiple network interfaces on a single host can offer several benefits, such as network redundancy, bandwidth increase, and recovery from network failover. However, they can also present challenges, such as the need for proper gateway configuration because the host operating system will only select one interface's gateways as the *default gateway* for the outbound traffic.
-
-In this blog post, we'll explore how to set the default gateway for a specific interface while keeping the second one for LAN traffic only on a dual network interface host.
-
-> A *default-gateway* is a networking term that refers to the IP address of the router that connects devices on a network to the internet or another different network.
 
 ## Setting the stage
 
-I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one as is an ethernet port, and the other is a wifi device.
+I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one is an Ethernet port, and the other is a Wi-Fi device.
 
 !["ThinkCenter M710q Mini PC"](25112651.jpeg)
 
-This arrangement allows the host to connect to two distinct publicly routable IP addresses via two different gateways. Since I have access to two networks, my plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic.
-
-To accomplish this goal, we must let the host always use the wifi's gateway as the *default gateway*. The reason is default gateways are reponsible for allowing the host to communicate with other networks (in our case the internet).
-
-It is important to note the subnets that each router is using to advertise local IPs to avoid IP conflicts. For me, the wifi interface is on a `172.20.13.xxx/16` subnet and the ethernet interface is on a `10.10.50.xxx/24` subnet.
+I also have access to two totally different networks. So, this arrangement allows the host to connect to two different, publicly routable IP addresses via two different gateways. My plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic. To make this happen, we just need to make sure the host always selects the wifi-interface's gateway as the default gateway.
 
 ## Gateway and interfaces configuration
 
@@ -56,14 +47,14 @@ user@host:~$ ip addr
        valid_lft 70380sec preferred_lft 70380sec
 ```
 
-In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP from its respective gateway:
+In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP:
 
 1. Ethernet interface: `enp0s31f6`
 2. Wifi interface: `wlp2s0`
 
 ### 2. Identify the default gateway for each interface
 
-We need to know each network's router (gateway) IP address to set up the default gateway on the host. We can find that using the `ip route` command
+We need to know each gateway's IP address to set up the default gateway on the host. We can find that using the `ip route` command
 
 ```text
 user@host:~$ ip route
@@ -82,11 +73,11 @@ From the output above, each interface has the following information
 
 The operating system currently uses `10.10.50.10` as the default gateway. To switch the default gateway to `172.20.1.1`, we need to delete the default gateway and then set the second one as the default gateway.
 
-Since each gateway represents a publicly routable IP address, let's take note of the current public IP address on the host before deleting/updating the gateways:
+Since each gateway represents a publicly routable IP address, let's take note of the current public IP address on the host before updating the gateways:
 
 ```text
 user@host:~$ curl ifconfig.me
-<Output=Network-1-Public-IPv4-Address>
+<Output=Network-1-Public-IPv4>
 ```
 
 Now let's delete the current default gateway `10.10.50.10`:
@@ -105,14 +96,14 @@ Check the public IP address again (it should return the second network's public 
 
 ```text
 user@host:~$  curl ifconfig.me
-<Output=Network-2-Public-IPv4-Address>
+<Output=Network-2-Public-IPv4>
 ```
 
 ### Verify gateway change using `tcpdump`
 
 You can use `tcpdump` to verify that the public traffic has been re-routed to the second gateway (wifi NIC).
 
-`tcpdump` is a command line tool used to capture and analyze network traffic in real-time. It is a powerful and widely-used tool for troubleshooting networks and monitoring network activity.
+`tcpdump` is a command line tool used to capture network traffic in real-time. It is a widely-used tool for troubleshooting networks and analyzing network activity.
 
 In our case, `tcpdump` can capture packets that are sent and received through the wifi NIC on the secondary gateway. This allows us to gather detailed information about each packet, including the source and destination addresses. Consequently, we can determine whether the host utilizes the wifi-NIC's gateway as the default gateway.
 
@@ -168,27 +159,25 @@ Mission accomplished! Now all WAN traffic is routed through gateway `172.20.1.1`
 
 ## Some gotchas
 
-During boot time network configuration, a race condition is likely to occur regarding which interface the operating system will utilize to set the default gateway.
+During *boot-time network configuration*, a race condition is likely to occur regarding which interface the operating system will utilize to set the default gateway.
 
-Boot time network configuration refers to configuring a network interface on a device during the boot process. This involves setting up the necessary network settings, such as IP address, subnet mask, default gateway, and DNS servers, so the device can connect to the network and communicate with other devices.
+Boot time network configuration is all about getting a host's network interfaces ready to communicate when the OS is firing up. Basically, it's setting up things like IP address, the network essentials, including the gateway address, so your device can link up with the network and chat with other devices. The operating system figures out the default gateway based on the first NIC that obtains an IP address and gateway info from its own gateway.
 
-Therefore, he operating system will determine the default gateway based on the first NIC that successfully obtains an IP address and gateway details from its router/gateway.
-
-In my experience, the OS consistently prioritized the ethernet interface when configuring the default gateway. This preference towards ethernet could be attributed to its almost instantaneous connection to the router, unlike the wifi interface, which might involve slightly more delay when it comes to connecting to the network's router.
+In my experience, the OS always seems to prefer the Ethernet interface when it's setting up the default gateway. I think this is due to the fact that Ethernet uses dedicated physical cables for communication, while the wifi interface relies on wireless signals, which can be affected by interference and signal strength. This can make wifi take a couple of seconds to catch up.
 
 Regardless, there are two solutions to remedy such a situation:
 
-### 1. Use `/etc/rc.local`
+### 1. Use `/etc/rc.local` or `systemd/rc-local.service`
 
-Basically, add the "delete-gateway" -> "set-gateway" commands explained above to the `/etc/rc.local`. The `/etc/rc.local` is a script file that is executed by the Linux init system during the boot process.
-
-The `/etc/rc.local` file is used to run custom commands or scripts that need to be executed at boot time. The commands or scripts in the file are executed with root privileges, so it is important to use caution when modifying the file.
+Basically, add the "delete-gateway" -> "set-gateway" commands explained above to the `/etc/rc.local`. The `/etc/rc.local` is a script file that is executed by the Linux init system during the boot process. The commands or scripts in the file are executed with root privileges, so it is important to use caution when modifying the file.
 
 Note that the `/etc/rc.local` file is deprecated in some Linux distributions, such as Ubuntu and Debian, in favor of `systemd`. Systemd uses its own mechanism for executing scripts and services at boot time, and the equivalent of the `/etc/rc.local` file in `systemd` is the `/etc/systemd/system/rc-local.service` file.
 
 ### 2. Use the good ol' cron
 
 Add a CRON schedule to run the "delete-gateway" -> "set-gateway" commands. This approach might introduce some network interruption when CRON is triggered. So wrapping these commands in a shell script with some `if`-`else` logic would be a good idea to check if the gateway has changed during boot time before updating it.
+
+Example:
 
 ```bash
 #!/bin/bash 
@@ -204,6 +193,6 @@ if [ "$CURRENT_PUBLIC_IP" != "$SECOND_NETWORK_PUBLIC_IP" ] ; then
 fi
 ```
 
-## Signing off for now: keep on exploring!
+## Signing off for now
 
 And that's a wrap for now! Until the next post, keep on exploring, learning, and enjoying Linux networking. Catch you on the flip side! 🚀👋
