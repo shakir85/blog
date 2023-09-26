@@ -7,7 +7,7 @@ categories: ["aws"]
 tags: ["good to know"]
 ---
 
-Using Amazon CloudFront to serve S3 data can be more cost-effective than serving data directly from S3 in some situations. However, the cost-effectiveness depends on your specific usage patterns and requirements. In this post, I will discuss key points to consider when deciding to use CloudFront for serving S3 content at the edge.
+Using Amazon CloudFront to serve S3 data can be more cost-effective than serving data directly from S3 in some situations. In this post, I will discuss key points to consider when deciding to use CloudFront for serving S3 content at the edge.
 
 ## Data transfer costs
 
@@ -23,7 +23,7 @@ CloudFront can help reduce the number of requests made directly to your S3 bucke
 
 ## Edge location data processing: Lambda@Edge
 
-CloudFront can also perform some data processing at the edge locations using [Lambda@Edge](https://aws.amazon.com/lambda/edge/). A simple example of processing data at the edge is deploying a Lambda@Edge to serve a custom page while your production website is in maintenance mode. Overall, utilizing Lambda@Edge can reduce the load on your origin server (in this case, S3) and open the door for a lot of features that you can add to your systems.
+CloudFront can also perform some data processing at the edge using [Lambda@Edge](https://aws.amazon.com/lambda/edge/). A simple example of processing data at the edge is deploying a Lambda@Edge to serve a custom page while your production website is in maintenance mode. Overall, utilizing Lambda@Edge can reduce the load on your origin server (in this case, S3) and open the door for a lot of features that you can add to your systems.
 
 ## Consider these points too
 
@@ -31,11 +31,11 @@ With all the mentioed features of CloudFront for serving conetent at edge, it's 
 
 ### CloudFront cost
 
-While CloudFront can save on data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching and edge locations, it might not be cost-effective.
+While CloudFront can help reduce data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching, the return on investment (ROI) of using CloudFront for S3 content might not be as cost-effective as expected, and you might incur unnecessary additional costs.
 
 ### Cache invalidation
 
-Content Delivery Networks (CDNs) are ideal for serving static content. They are typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, some CDN providers offer features to address these limitations such as routing optimization and cache invalidation.
+Content Delivery Networks (CDNs) are ideal for serving static content. They are not typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, some CDN providers offer features to address these limitations such as routing optimization and cache invalidation.
 
 If your data frequently changes and requires real-time updates (dynamic content), you may need to manage cache invalidation carefully with CloudFront, as it may introduce additional complexity and costs.
 
