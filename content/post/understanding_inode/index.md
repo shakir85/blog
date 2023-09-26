@@ -10,7 +10,7 @@ tags: ["good to know"]
 draft: false
 ---
 
-Unix-like operating systems, an inode (short for "index node") is a data structure that stores metadata about a file or directory. Each file or directory on a filesystem is associated with a unique inode which contains information such as:
+In Unix-like operating systems, an inode (short for "index node") is a data structure that stores metadata about a file or directory. Each file or directory on a filesystem is associated with a unique inode which contains information such as:
 
 - File type (regular file, directory, symbolic link, device file, etc.)[^1].
 - Permissions (read, write, execute) for the owner, group, and others.
