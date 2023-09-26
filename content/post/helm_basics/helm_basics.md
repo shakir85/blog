@@ -4,32 +4,52 @@ description: "A cheat sheet to get up to speed with Helm and its commands"
 date: 2023-05-30T12:54:12-07:00
 categories: ["k8s", "helm"]
 tags: ["grasping essentials"]
-draft: false
+draft: true
 ---
 
-Helm, often referred to as the package manager for Kubernetes, provides a streamlined and efficient way to deploy, upgrade, and manage application deployments on your Kubernetes clusters. This post will go over the definition of Helm's building blocks and basic commands.
+This post will cover the definition of Helm's building blocks and basic commands.
 
 ## Why Helm?
 
-It's important to know that Kubernetes doesn't know anything about our application's requirements. It doesn't know that PVC "x" is part of Deployment "y" which needs Service "z", and without these parts the application will not work. All what Kubernetes knows is to manage its resources and thrive on keeping its components in the cluster alive. Helm, on the other hand, is designed to know about our application. That's why it's called a package manager because it looks at our application's manifests as a group (package). It allows us to look at our Kubernetes application as "an application" rather than a collection of Kubernetes objects.
+When we intend to deploy an application to a K8s cluster, it's important to know that Kubernetes doesn't inherently understand our application's requirements (and it shouldn't).
+
+What I mean by that is Kubernetes doesn't recognize that PVC "x" is associated with Deployment "y," which, in turn, relies on Service "z", and without these components, the application will not run as intended. All what Kubernetes knows is to manage its resources and thrive on keeping cluster's objects alive.
+
+So we needed a way to "bundle" our Kubernetes application for better release management. We wanted to put the pieces together. Out API app needs a Deployment that requires a Service and we need a storage for that. So we all these parts should deployed, removed, updated, versioned, and shared together, becasue these parts represent a specific application.
+
+Helm is designed to know about our application. That's why it's called a package manager because it looks at our application's K8s manifests as a group (package). It allows us to look at our Kubernetes application as "an application" rather than a collection of Kubernetes objects.
 
 ## Helm Chart
 
-A Helm Chart is a packaged, deployable unit that encapsulates all the necessary components and configurations required to deploy an application on Kubernetes. For example, an Nginx Helm chart includes all the necessary Kubernetes manifests (`service`, `deployment`, `replicaset`, ... etc), required to easily deploy and manage Nginx to your K8s cluster.
+A Helm Chart is a **packaged**, **deployable unit** that comprises **all configurations** needed for deploying an application to a Kubernetes cluster.
+
+Let's break this statement down:
+
+- Packaged: A Helm chart is a package for Kubernetes applications, similar to how a Debian apt package bundles software for easy installation on Linux.
+
+- Deployable unit: A Helm chart can be deployed to a K8s cluster, similar to the other K8s objects. It has all
+
+- Includes all configuration files: Within a chart, you'll add all the required K8s manifests (such as service, deployment, replicaset, etc.), that your application needs. Making it easy to deploy and manage our application within a Kubernetes cluster.
+
+By combining these three characteristics, you can deliver your application to any Kubernetes cluster of your choice easily. Not only that, but you can also share your chart (i.e. your applications) so others can deploy it to their cluster too.
 
 ## Helm Release
 
-A "release" refers to a specific instance of a deployed application in a Kubernetes cluster. When you install a Helm chart, it generates a release with a unique name and version. The release tracks the deployed application's lifecycle, including information such as the chart version, configuration values, deployed resources, and any other metadata associated with the deployment. Simply put, when you install an Nginx chart, the installed instance of the chart is called a "release". You could have one or more Nginx releases deployed from the same chart; each has its unique name and attributes.
+A Helm "release" is a running instance of a Helm chart. When you install a Helm chart, it generates a release with a unique name and version. You can install a chart multiple times, each will have its unique name, and optinally, you can use different variables and parameters.
+
+For example, when you install an Nginx chart, the *installed instance* of the chart is called a "release". You can have one or more Nginx releases deployed from the same chart; each installation has its unique name.
 
 ## Helm Repository
 
-A "repository" in Helm refers to a storage location where Helm charts are stored, accessed, and shared. It can be a remote or local location containing packaged charts that can be fetched and installed using Helm commands. You can interact with Helm repositories using the `helm repo <command>` to add, update, or manage repositories.
+A "repository" in Helm refers to a storage location where Helm charts are stored. Like any artifact repository, it can be accessed and shared. It can be a remote or local.You can interact with Helm repositories using the `helm repo <command>` to add, update, or manage repositories.
 
 ## Helm Hub
 
-A "hub" refers to a centralized platform or service that hosts a collection of repositores. These hubs, such as the default one Artifact Hub ([artifacthub.io](https://artifacthub.io/)), provide a user-friendly interface for discovering and exploring Helm charts. The hub offers a way for you to discover charts stored in various repositories managed by different individuals and organizations. They serve as curated repositories that offer a wide range of repositories that houses Helm charts for users to search, browse, and install.
+A "hub" refers to a centralized **platform** that hosts a collection of repositores such as the default one Artifact Hub ([artifacthub.io](https://artifacthub.io/)). These hubs provide a user-friendly interface for discovering and exploring Helm repositories.
 
-While the distinction between a "hub" and a "repository" can vary based on context, it's worth noting that the terms are sometimes used interchangeably, and the functionalities they provide may overlap.
+### Helm Hub vs. Repo
+
+ Think of Helm repositories like *storage* places where Helm charts are stored and Helm hub is like a platform that offers a *search* service to find Helm charts from different repositories. So basically, Helm Hub makes it easy to find and interact with Helm charts, while Helm repositories store the actual chart files.
 
 ## Commands cheat sheet
 
@@ -38,12 +58,12 @@ While the distinction between a "hub" and a "repository" can vary based on conte
 # 1. You add, update, or delete a repository,
 # 2. Install, and delete Helm charts.
 #
-# By default Helm uses https://artifacthub.io for charts.  
+# By default, Helm uses https://artifacthub.io for charts.  
 #
-# Helm deploys K8s resource; this means that Helm is aware of K8s namespaces.
+# Helm deploys K8s resources, this means that Helm is aware of K8s namespaces.
 # Helm will always use the default namespace of the currently activated context 
 # in your K8s cluster. 
-# Similar to kubectl, use the '-n' flag to interact with k8s namespaces 
+# Similar to kubectl, use the '-n' flag to interact with K8s namespaces 
 # while working with Helm commands.
 #
 # Search the default Helm hub
