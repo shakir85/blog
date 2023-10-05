@@ -1,13 +1,11 @@
 ---
 title: "Firewalls: stateful vs. stateless"
-description: "Explained in simple terms to help you make informed decisions for your security strategy"
+description: "The key differences explained in simple terms"
 date: 2023-07-24T19:56:52-07:00
 draft: false
 tags: ["good to know"]
 categories: ["networking"]
 ---
-
-Firewalls have two major characteristics: **stateless** and **stateful** firewalls. These two approaches serve different purposes, and the decision of whether to implement stateful or stateless firewall rules depends on your specific needs.
 
 Whether it's an on-prem firewall or in the cloud, it's important to understand the fundamental distinctions in firewall types. In this post, I will summerize the differences between stateful and stateless filtering in simple and basic terms.
 

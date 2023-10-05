@@ -1,6 +1,6 @@
 ---
 title: "Understanding inodes"
-description: Exlpore the fundamental concept of inodes and their role in file system management
+description: "Explaining the basics of Linux inodes and their role in file systems"
 # slug: hello-world
 date: 2023-08-16T23:17:40-07:00
 # image: cover.jpg
