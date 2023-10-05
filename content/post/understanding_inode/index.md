@@ -20,15 +20,17 @@ In Unix-like operating systems, an inode (short for "index node") is a data stru
 - The number of hard links to the file[^3].
 - Disk block pointers point to the data blocks on the storage device.
 
-!["Example: inode of an Empty File"](example.png)
+!["Example: inode of an empty file"](example.png)
 
-In this post, I'll cover the essentials of inodes – how to identify issues tied to them, and ways to troubleshoot. Keep in mind that inodes can become quite complex becose they touch various parts of the filesystem and storage structure. So for the sake of keeping this post simple, we won't dive into all those complexities.
+In this post, I'll cover the basics of inodes – how to identify issues tied to them, and ways to troubleshoot. Keep in mind that inodes can become quite complex because they touch various parts of the filesystem.
 
 ## Why the system needs something like inodes?
 
-When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file's metadata and the data-blocks location on the disk. This is in general. The specific implementation and terminology may vary slightly depending on the filesystem type and the OS version.
+When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file's metadata and the data-blocks location on the disk.
 
 Therefore, an inode is allocated to store the file (or directory) metadata, which allow the filesystem to properly manage file access and storage. This also make operations like finding files by name, checking permissions, and tracking file sizes easy for the OS.
+
+This is in general. The specific implementation and terminology may vary slightly depending on the filesystem type and the OS version.
 
 ## Inode capacity
 
@@ -50,11 +52,11 @@ Inode exhaustion can be caused by (but not limited to) the following factors:
 
 ### Small files and directories
 
-If you have a ton of very small files and directories, each will consume an inode. This can quickly deplete the available inode pool, even if there is plenty of free space on the disk.
+If you have a ton of very small files and directories, each will consume an inode, which will quickly deplete the available inode pool. Regardless of whether or not there is plenty of free space on the disk.
 
 ### Lots of small writes
 
-Related the previous point, frequent small writes, such as those caused by a lot of logging or temporary file creation, can contribute to inode exhaustion. These small writes create new inodes each time, and on the long run this can lead to a depletion of available inodes.
+Related to the previous point, frequent small writes, such as those caused by a lot of logging or temporary file creation, can contribute to inode exhaustion. These small writes create new inodes each time, and on the long run this can lead to a depletion of available inodes.
 
 ### Temporary files
 
@@ -110,6 +112,6 @@ A reboot *might* be helpful only to clear out stale or stuck processes that keep
 - Reorganizing and tidying up the whole filesystem might be needed, this will need a storage expert.
 - If you're running into this problem often while compiling software in your CI/CD pipeline, you might want to think about using a Docker container to build the app and then stash away the build artifacts using Docker bind mounts or [docker exporter](https://docs.docker.com/build/exporters/). Then delete the build left overs.
 
-[^1]: The first column of the left of the output of the `ls -l` command Shows file types. The `c`, `d` are charcter and device files, `l` for symlinks, `d` for directoreis and `-` for files.
+[^1]: The first column of the left of the output of the `ls -l` command shows file types. The `c`, `d` are charcter and device files, `l` for symlinks, `d` for directoreis and `-` for files.
 [^2]: Use `stat` command to view when a file created, accessed or modified as well as other file info.
 [^3]: Unlike symlinks, which are references to file paths, hard links directly reference the underlying data blocks of a file on disk.

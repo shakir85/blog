@@ -1,6 +1,6 @@
 ---
 title: "To CloudFront or not to CloudFront?"
-description: "Using CloudFront with S3 for cost optimization when serving content on edge"
+description: "Using CloudFront with S3 for performance and cost optimization"
 date: 2023-08-01T11:03:48-07:00
 draft: false
 categories: ["aws"]
@@ -11,7 +11,7 @@ Using Amazon CloudFront to serve S3 data can be more cost-effective than serving
 
 ## Data transfer costs
 
- CloudFront can help reduce data transfer costs by caching and serving content from edge locations closer users. If your content is accessed *frequently* by users from different geographic locations, CloudFront can reduce the amount of data transferred over the internet compared to serving directly from S3.
+ CloudFront can help reduce data transfer costs by caching and serving content from edge locations closer users. If your content is accessed *frequently* by users from different geographic locations, CloudFront can reduce the amount of data transferred over the internet compared to serving content directly from an S3 bucket.
 
 ## Latency and performance
 
@@ -23,15 +23,17 @@ CloudFront can help reduce the number of requests made directly to your S3 bucke
 
 ## Edge location data processing: Lambda@Edge
 
-CloudFront can also perform some data processing at the edge using [Lambda@Edge](https://aws.amazon.com/lambda/edge/). A simple example of processing data at the edge is deploying a Lambda@Edge to serve a custom page while your production website is in maintenance mode. Overall, utilizing Lambda@Edge can reduce the load on your origin server (in this case, S3) and open the door for a lot of features that you can add to your systems.
+CloudFront can also perform some data processing at the edge using [Lambda@Edge](https://aws.amazon.com/lambda/edge/). Lambda@Edge allows us to add a computing element when serving content at edge. For example, you can customize routing to S3 buckets, serve specific content when your website is in maintenance mode, and overall improved user experience without modifying your website code.
+
+Overall, utilizing Lambda@Edge can reduce the load on your origin server (in this case, S3) and open the door for a lot of features that you can levrage.
 
 ## Consider these points too
 
-With all the mentioed features of CloudFront for serving conetent at edge, it's important to consider the following aspects as well:
+With all the mentioed features of CloudFront for serving S3 content at edge, it's important to consider the following aspects as well:
 
 ### CloudFront cost
 
-While CloudFront can help reduce data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching, the return on investment (ROI) of using CloudFront for S3 content might not be as cost-effective as expected, and you might incur unnecessary additional costs.
+While CloudFront can help reduce data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching, i.e. requests always need to hit the backedn S3 bucket, then the return on investment (ROI) of using CloudFront for S3 content might not be as cost-effective as expected, and you might incur unnecessary additional costs.
 
 ### Cache invalidation
 
@@ -41,7 +43,7 @@ If your data frequently changes and requires real-time updates (dynamic content)
 
 ### Low volume data transfer
 
-For very small data-transfers, or infrequent access patterns, the cost advantage of CloudFront + S3 might be less significant compared to direct S3 access.
+For very small data-transfers, or infrequent access patterns, the cost advantage of CloudFront + S3 might be less significant compared to fetching the data from S3 directly.
 
 ### Transfer to origin
 
