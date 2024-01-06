@@ -4,12 +4,12 @@ description: "A quick guide on mounting EBS volumes"
 date: 2023-10-04T21:22:40-07:00
 categories: ["aws"]
 tags: ["grasping essentials"]
-draft: true
+draft: false
 ---
 
-In any system or server, it is generally advisable to maintain a clear separation between your application data and the operating-system's data. This practice enables the implementation of a consistent data lifecycle for applications and to ensure that the OS data separated from the application data *at the disk level*.
+This post is designed for those new to AWS, showing the steps to attach a new EBS volume and mount it in the operating system. The goal of mounting a data volume is to maintain a clear separation between your application data and the operating-system's data.
 
-In this post we will walk through the process of creating an EBS volume, setting up a partition table, deploying a file system, and mounting it to the operating system. The goal is to establish a dedicated data lifecycle for that specific volume (the data volume) and to be able to easily detach/attach it to any EC2 instance.
+Initializing EBS volumes is important also when working with Auto Scaling Groups (ASG). Auto Scaling Groups use launch templates, which contain information such as the Amazon Machine Image (AMI), SSH keys, and more, to deploy new EC2 instances during scaling events. An AMI captures the state of the root volume and any additional attached EBS volumes, including their mount points. If you attach an EBS volume, mount it to a specific directory like `/foo`, and then create an AMI from that EC2 instance, the information about the attached EBS volume and its mount point will be preserved.
 
 ## Requrements
 
@@ -20,7 +20,7 @@ In this post we will walk through the process of creating an EBS volume, setting
 Before we start, I'd like to mention that all the steps here can be automated using the AWS CLI/SDK, or your preferred Infrastructure as Code (IaC) tool. In this instance, we'll walk through the console setup for clarity.
 
 **Disclaimer**
-This post will focus on provisioning a new disk, including the formatting process. Adding a new partition to a partially used disk is beyond the scope of this blog, and following the steps below will effectively remove all the content from the specified volume.
+This post will focus on provisioning a new volume, including the formatting process. Adding a new partition to a partially used volume is beyond the scope of this blog, and following the steps below will effectively wipe all the content from the specified volume.
 
 ## Step 1: Create an EBS volume
 
@@ -68,8 +68,8 @@ Once the disk is identified, we need to install a partition table.
 
 Run the `fdisk` command and follow the instructions specfied in the code block below
 
-```
-[ec2-user@ip-172-31-19-100 ~]$ sudo fdisk /dev/sdb 
+```text
+$ sudo fdisk /dev/sdb 
 
 Welcome to fdisk (util-linux 2.37.4).
 Changes will remain in memory only, until you decide to write them.
@@ -113,23 +113,26 @@ Use the `mkfs` tool to create a file system on the new partition.
 
 ![Make a file system](make_filesystem.png)
 
-The `-t` option allows us to select the type of the file system; in this case, I will use `ext4`. The `LABEL` option can be any meaningful name for your volume. We will use the `LABEL` in the next step when we mount the file system, so be sure to use a helpful name.
+The `-t` option allows us to select the type of the file system; in this case, I will use `ext4`. The `-L` option can be any meaningful name for your volume. We will use that label in the `LABEL` option in the next step when we mount the file system, so be sure to use a helpful name.
 
 ### Mount the new file system
 
 Create a new directory (or use an existing one), and mount the new file system to it
 
 ```sh
-[ec2-user@ip-172-31-19-100 ~]$ sudo mount LABEL=ebs001 /ebs001 
+$ sudo mount LABEL=ebs001 /ebs001 
 ```
 
 Check the mount point
 
 ```sh
-[ec2-user@ip-172-31-19-100 ~]$ ls !$
-ls /ebs001
+$ ls /ebs001
+
 lost+found
 ```
 
 Let's add a file to it for testing
+
 ![Alt text](test_file.png)
+
+The volume is now ready, allowing the EBS volume to easily be detached from its current EC2 instance and attached to another instance without any data loss. This volume is ideal for storing your application data, such as serving as a mount point for a Docker volume, which will keep the application data separated from the EC2 root volume at all times.
