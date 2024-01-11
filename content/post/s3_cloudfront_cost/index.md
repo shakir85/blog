@@ -47,7 +47,7 @@ For very small data-transfers, or infrequent access patterns, the cost advantage
 
 ### Transfer to origin
 
-Always consult AWS documentation and pricing calculator for details and up-to-date information regarding data transfer costs from Amazon CloudFront to S3 buckets, both within the same region and across regions. AWS pricing can vary depending on various factors, and staying informed about the current pricing structure is important to manage your AWS bill.
+Data transfer from CloudFront to AWS services' origin is free, [see the General section of CloudFront FAQ](https://aws.amazon.com/cloudfront/faqs/). However, it's always a good idea to consult AWS documentation to understand any cost-related matters.
 
 ### Consider S3 Corss-Region Replication
 
