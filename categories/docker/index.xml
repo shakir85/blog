@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>docker on Shakir</title><link>https://demo.stack.jimmycai.com/categories/docker/</link><description>Recent content in docker on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Sun, 16 Jul 2023 17:34:13 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/docker/index.xml" rel="self" type="application/rss+xml"/><item><title>Docker CMD and ENTRYPOINT differences</title><link>https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/</link><pubDate>Sun, 16 Jul 2023 17:34:13 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/</guid><description>&lt;p>In this post, I will demonstrate how &lt;code>ENTRYPOINT&lt;/code> and &lt;code>CMD&lt;/code> work together, their differences, and how to redirect the runtime execution flow from &lt;code>ENTRYPOINT&lt;/code> to the &lt;code>CMD&lt;/code> where the main application&amp;rsquo;s command is executed.&lt;/p>
+&lt;h2 id="the-way-entrypoint-and-cmd-work-together">The way &lt;code>ENTRYPOINT&lt;/code> and &lt;code>CMD&lt;/code> work together&lt;/h2>
+&lt;p>In most cases, &lt;code>CMD&lt;/code> and &lt;code>ENTRYPOINT&lt;/code> instructions can be used interchangeably. Also, you do not have to use both of them together in every Dockerfile you develop. However, each instruction offers additional features that can help you control how you want to run your application. Before moving forward, let&amp;rsquo;s quickly review what each instruction does:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>ENTRYPOINT&lt;/code> is like the &amp;ldquo;main command&amp;rdquo; or the starting point for your container. It&amp;rsquo;s the default action the container takes when you run it. You might use &lt;code>ENTRYPOINT&lt;/code> to start a web server or run a specific application.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>CMD&lt;/code> can be used to provide additional arguments or options to the command specified in &lt;code>ENTRYPOINT&lt;/code>. It&amp;rsquo;s like saying, &amp;ldquo;When you start the container using the &lt;code>ENTRYPOINT&lt;/code> command, here are some extra args to pass to the executing app&amp;rdquo;. It is often used to pass &lt;em>default&lt;/em> arguments to &lt;code>ENTRYPOINT&lt;/code>. Note that we said: &amp;ldquo;default arguments&amp;rdquo; which we&amp;rsquo;ll explain what does that mean in a bit.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>So, &lt;code>ENTRYPOINT&lt;/code> sets the main command of the container, and &lt;code>CMD&lt;/code> provides default arguments to that command. Here is an example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;Hello world&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Running a container from this Dockerfile is similar to executing &lt;code>echo &amp;quot;Hello world&amp;quot;&lt;/code> in the command line. The &lt;code>echo&lt;/code> is the main app and &lt;code>Hello world&lt;/code> is the argument. Similarly, in the Dockerfile above, the content of the &lt;code>CMD&lt;/code> instruction is passed to the &lt;code>ENTRYPOINT&lt;/code> as the default argument. when we build and run the container without arguments it will print &amp;ldquo;Hello world&amp;rdquo;:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build -t &lt;span class="nb">test&lt;/span> .
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">Hello world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="overriding-cmd">Overriding &lt;code>CMD&lt;/code>&lt;/h3>
+&lt;p>To override the &lt;code>CMD&lt;/code> that is defined in the Dockerfile (&lt;em>default&lt;/em> argument), you just pass the argument(s) after the image name:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span> &lt;span class="s1">&amp;#39;another hello world&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">another hello world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This method also overrides the &lt;code>CMD&lt;/code> whether it&amp;rsquo;s used in combination with &lt;code>ENTRYPOINT&lt;/code> instruction or not.&lt;/p>
+&lt;h3 id="overriding-entrypoint">Overriding &lt;code>ENTRYPOINT&lt;/code>&lt;/h3>
+&lt;p>Given this Dockerfile:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;Hello world&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>When you have a Dockerfile with only an &lt;code>ENTRYPOINT&lt;/code> (i.e. no &lt;code>CMD&lt;/code>), you need to use the &lt;code>--entrypoint&lt;/code> flag to override the entry-point command as the following:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># docker run --entrypoint &amp;lt;command&amp;gt; &amp;lt;image&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run --entrypoint &lt;span class="s1">&amp;#39;printenv&amp;#39;&lt;/span> &lt;span class="nb">test&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">HOSTNAME=7ffd59696373
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">HOME=/root
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you try to supply a command at runtime without specifying the &lt;code>--entrypoint&lt;/code> flag, Docker will treat the that command as additional arguments to the command specified in the &lt;code>ENTRYPOINT&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span> &lt;span class="s1">&amp;#39;printenv&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">Hello world printenv
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This is similar to an entry-point in Dockerfile like this: &lt;code>ENTRYPOINT [&amp;quot;echo&amp;quot;, &amp;quot;Hello world&amp;quot;, &amp;quot;printenv&amp;quot;]&lt;/code>&lt;/p>
+&lt;h2 id="handing-over-execution-flow-from-entrypoint-to-cmd">Handing over execution flow from &lt;code>ENTRYPOINT&lt;/code> to &lt;code>CMD&lt;/code>&lt;/h2>
+&lt;p>Consider the following Python Flask app:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> python:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># RUN &amp;gt;&amp;gt;&amp;gt; install Python packages &amp;amp; configs ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># COPY &amp;gt;&amp;gt;&amp;gt; add files and executables&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;uvicorn&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;main:app&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;--host&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;0.0.0.0&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The uvicorn command will be executed when the container runs, and the &lt;code>CMD&lt;/code> instruction will provide the necessary arguments for the uvicorn server.&lt;/p>
+&lt;p>Usually, we need a way to include runtime configurations that our Flask app expects to be available in the run environment prior to executing the main application in the entry-point (e.g. &lt;code>uvicorn&lt;/code>). These configurations could be starting a service, exporting environment variables, running a database migration script, or simply editing certain configuration files.&lt;/p>
+&lt;p>This type of commands (runtime commands) cannot be included in &lt;code>RUN&lt;/code> stages, and it is an anti-pattern and honestly quite ugly to cram a lot of shell commands into the &lt;code>ENTRYPOINT&lt;/code> and/or &lt;code>CMD&lt;/code> sections.&lt;/p>
+&lt;h3 id="enter-docker-enterypointsh">Enter &amp;ldquo;docker-enterypoint.sh&amp;rdquo;&lt;/h3>
+&lt;p>When developing a Dockerfile, it is a common pattern to wrap various initialization commands within a shell script, conventionally named &amp;lsquo;docker-entrypoint.sh&amp;rsquo; or &amp;rsquo;entrypoint.sh&amp;rsquo; and execute it using an &lt;code>ENTRYPOINT&lt;/code> instruction prior to running the main app. The purpose of this technique is to provide a flexible way of configuring the Docker container environment &lt;em>at run time&lt;/em>.&lt;/p>
+&lt;p>Since &lt;code>ENTRYPOINT&lt;/code> instruction provides run-time execution, we need to find a way to return the execution flow back the Dockerfile&amp;rsquo;s &lt;code>CMD&lt;/code> instruction to run the main application command.&lt;/p>
+&lt;p>To do so, simply add an &lt;code>exec &amp;quot;@$&amp;quot;&lt;/code> statement at the very end of the shell script that is being executed by the &lt;code>ENTRYPOINT&lt;/code> (i.e. &amp;lsquo;docker-entrypoint.sh&amp;rsquo;) file.&lt;/p>
+&lt;p>After adding all configuration scripts to &amp;lsquo;docker-entrypoint.sh,&amp;rsquo; we will modify the Dockerfile as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> python:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># RUN &amp;gt;&amp;gt;&amp;gt; install Python packages &amp;amp; configs ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># COPY &amp;gt;&amp;gt; add our app&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ....&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Copy the init script file to a directory in the PATH&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># You might need to `chmod +x` it too&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> docker-entrypoint.sh /usr/local/bin &lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;docker-entrypoint.sh&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;uvicorn&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;main:app&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;--host&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;0.0.0.0&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>To visualize the process:&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1.png"
+width="1155"
+height="437"
+srcset="https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1_hu22bb2e668f1b020c51f48902814d7093_127716_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1_hu22bb2e668f1b020c51f48902814d7093_127716_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Dockerfile example&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="264"
+data-flex-basis="634px"
+>&lt;/p>
+&lt;p>When we run the container, Docker will execute the &lt;code>ENTRYPOINT&lt;/code>, which contains the &amp;ldquo;docker-entrypoint.sh&amp;rdquo; script. Then, the &lt;code>exec &amp;quot;$@&amp;quot;&lt;/code> command in the &amp;ldquo;docker-entrypoint.sh&amp;rdquo; script will, in a sense, return control to the &lt;code>CMD&lt;/code>. To clarify, the exec part won&amp;rsquo;t transfer execution flow; it just expands the arguments specified in the &lt;code>CMD&lt;/code> instruction in a new process.&lt;/p>
+&lt;p>Let&amp;rsquo;s break down what &lt;code>exec &amp;quot;@$&amp;quot;&lt;/code> does:&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>exec&lt;/code> is a Linux command used to replace the current process with a new process. In this case, it ensures that &lt;code>&amp;quot;$@&amp;quot;&lt;/code> becomes the main process running in the container.&lt;/li>
+&lt;li>&lt;code>&amp;quot;$@&amp;quot;&lt;/code> expands to all the command-line arguments passed to the container when it starts (e.g. expanding the content of the &lt;code>CMD&lt;/code> instruction). It preserves the exact arguments that were passed during container runtime. Also, you still can override the &lt;code>CMD&lt;/code> by specifying args on the &lt;code>docker run&lt;/code> command. Finally, note that you cannot place any commands in the &amp;lsquo;docker-entrypoint.sh&amp;rsquo; file after the exec &amp;ldquo;$@&amp;rdquo; line.&lt;/li>
+&lt;/ul></description></item><item><title>A practical approach for using Docker scratch base layer</title><link>https://demo.stack.jimmycai.com/p/a-practical-approach-for-using-docker-scratch-base-layer/</link><pubDate>Fri, 28 Apr 2023 15:23:17 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/a-practical-approach-for-using-docker-scratch-base-layer/</guid><description>&lt;p>The scratch base is a Docker&amp;rsquo;s reserved &lt;em>blank image&lt;/em>, or an empty filesystem, that acts like an empty layer to create parent images. It is like an empty canvas. It&amp;rsquo;s where you start building containers from scratch (no pun intended!), adding only what your application needs, making it super minimal. This gives us complete control over what can be shipped inside the container.&lt;/p>
+&lt;p>In this post, I will show you two different ways to utilize the &amp;lsquo;scratch&amp;rsquo; base. The first part will explore how to create minimal Docker images primarily for sharing files with other images and use container hubs, like ECR and Docker Hub, as file storage. In the second part, I will discuss the advantages of using the scratch base layer for deploying single-binary applications.&lt;/p>
+&lt;h2 id="sharing-files-between-images">Sharing files between images&lt;/h2>
+&lt;p>When building images, Docker gives us the ability to pull files from other images (remote or local) using the &lt;code>--from=&lt;/code> option with the &lt;code>COPY&lt;/code> instruction in Dockerfile as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>foo:1.2 /content /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Other build commands ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>What&amp;rsquo;s neat about this is that it enables us to cherry-pick specific files from another image and toss them into our new image while it&amp;rsquo;s building. And the cherry on top? You can even pick files from a specific image by specifying in its tag. So if you have two tags for the image foo: &lt;code>foo:latest&lt;/code> and &lt;code>foo:1.2&lt;/code>, you can pull files from the version 1.2 on the fly.&lt;/p>
+&lt;h3 id="treat-your-container-hub-as-a-remote-storage">Treat your container hub as a remote storage&lt;/h3>
+&lt;p>Since we can copy files from remote images into a Dockerfile to include them in new image builds, we can actually store project files in the container registry as container images. You might wonder, why would you do that? Why not just use object storage like AWS S3 or even a Git repo to store and fetch files dynamically?&lt;/p>
+&lt;p>Well, it&amp;rsquo;s just an additional option that comes with its own set of benefits:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>You don&amp;rsquo;t need to fuss with remote storage authentication especially if you&amp;rsquo;re already logged in to your container registry. You&amp;rsquo;re already authenticated, which is super handy in CI/CD pipelines.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>It brings reproducibility to the table. Every image in your pipeline can fetch files from a single source (image) that the pipeline is already has access to. This consistency makes it easy to replicate builds.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>But, be aware that poorly planning how you use this approach can turn it into a dependency hill, and you might end up shooting yourself in the foot. So, use it wisely and be sure to document your approach.&lt;/p>
+&lt;p>So, if your intention is to use Docker images solely for storing files, then here&amp;rsquo;s the approach you should take:&lt;/p>
+&lt;p>Dockerfile content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="c"># Use scratch image, you don&amp;#39;t need a distro&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Copy all files you want to share from other images&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> somescript.sh /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> somearchive.tar.gz /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Build the image:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build -t foo:1.2 .
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Push to remote (skip if you want the image to be local)&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker push shakir85/foo:1.2
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Then, copy the files from the remote container registry into your Docekrfile:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="c"># This is your application image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Get files from remote image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>shakir85/project_files:latest /content /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Build your image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Although you can achieve the same result with minimal images like Alpine or Busybox, using a distro-based image solely for file storage and sharing in Docker is not as efficient as using scratch base image.&lt;/p>
+&lt;h2 id="use-sctach-base-for-single-binary-containers">Use sctach base for single binary containers&lt;/h2>
+&lt;p>The scratch base layer can be an excellent choice for creating single-binary containers when your application and its dependencies are entirely self-contained within a single executable file.&lt;/p>
+&lt;p>When you use &lt;code>FROM scratch&lt;/code>, you start with an empty filesystem, and you can add only what is absolutely necessary for your application to run. This approach can help produce minimal container with a very small footprint because it contains only your application binary and nothing else.&lt;/p>
+&lt;p>The catch is that, since the scratch layer is essentially an empty filesystem, your application must be &lt;a class="link" href="https://en.wikipedia.org/wiki/Static_build" target="_blank" rel="noopener"
+>statically compiled&lt;/a>. Also, keep in mind that because your application is going to be statically compiled, a small-sized container is not guaranteed. The container&amp;rsquo;s size really depends on the type and requirements of the application and the number of libraries or dependencies that need to be included (compiled) along with the application.&lt;/p>
+&lt;p>That being said, let&amp;rsquo;s take a look at this simple hello-world C code:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#include&lt;/span> &lt;span class="cpf">&amp;lt;stdio.h&amp;gt;&lt;/span>&lt;span class="cp">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">printf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;hello world&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Compile it using &lt;code>--static&lt;/code> flag to include the required libraries in the final executable:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">gcc -o hello --static hello.c
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Create the &lt;code>Dockerfile&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> hello /&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span> &lt;span class="s2">&amp;#34;/hello&amp;#34;&lt;/span> &lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Build the image and run the container:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build --no-cache -t my-scratch:latest .
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run --rm my-scratch
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If we try to send an &lt;code>echo&lt;/code> command to the container, it will fail because there is no such a binary or application in the scratch container&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run --rm my-scratch &lt;span class="nb">echo&lt;/span> hi
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker: Error response from daemon: failed to create shim task: OCI runtime create failed:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">runc create failed: unable to start container process: exec:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>: executable file not found in &lt;span class="nv">$PATH&lt;/span>: unknown.
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="bonus">Bonus&lt;/h3>
+&lt;p>Say, for example, we want to add the &lt;code>echo&lt;/code> command to the scratch container. Since &lt;code>echo&lt;/code> is a compiled binary, we may think we can copy it from another parent image into the scratch image using &lt;code>COPY --from=ubuntu:latest /usr/bin/echo /&lt;/code> in the Dockerfile.&lt;/p>
+&lt;p>However, since &lt;code>echo&lt;/code> is a dynamically linked binary, the &lt;code>echo&lt;/code> binary will need some dependencies in order to run. We can use the &lt;code>ldd&lt;/code> command&lt;sup id="fnref:1">&lt;a href="#fn:1" class="footnote-ref" role="doc-noteref">1&lt;/a>&lt;/sup> to view what libraries &lt;code>echo&lt;/code> depends on. Let&amp;rsquo;s jump into an Ubuntu container and examine that:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run -it --rm ubuntu:latest bash
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@cd3dd0afeb53:/# which &lt;span class="nb">echo&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/usr/bin/echo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@cd3dd0afeb53:/# ldd /usr/bin/echo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> linux-vdso.so.1 &lt;span class="o">(&lt;/span>0x00007ffe99d81000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> libc.so.6 &lt;span class="o">=&lt;/span>&amp;gt; /lib/x86_64-linux-gnu/libc.so.6 &lt;span class="o">(&lt;/span>0x00007fecf34c3000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /lib64/ld-linux-x86-64.so.2 &lt;span class="o">(&lt;/span>0x00007fecf36f9000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output shows the &lt;code>echo&lt;/code> command&amp;rsquo;s dependencies that must be in the container, which without them, the &lt;code>echo&lt;/code> command will not work.&lt;/p>
+&lt;div class="footnotes" role="doc-endnotes">
+&lt;hr>
+&lt;ol>
+&lt;li id="fn:1">
+&lt;p>This &lt;a class="link" href="https://www.reddit.com/r/linux/comments/ylg6rd/linux_instrumentation_part_4_ldd/?utm_source=share&amp;amp;utm_medium=web2x&amp;amp;context=3" target="_blank" rel="noopener"
+>Reddit post&lt;/a> shows some interesting facts about &lt;code>ldd&lt;/code>.&amp;#160;&lt;a href="#fnref:1" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/div></description></item><item><title>Docker containers process</title><link>https://demo.stack.jimmycai.com/p/docker-containers-process/</link><pubDate>Sat, 22 Apr 2023 11:17:28 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/docker-containers-process/</guid><description>&lt;p>A Docker container is a process, isolated from the host and other containers, running on the system using various Linux kernel features, such as namespaces and cgroups. And this is the main differentiator between VMs and containers.&lt;/p>
+&lt;p>When you start a Docker container, Docker creates a new process in the host system&amp;rsquo;s process tree. Then it will apply the container&amp;rsquo;s configuration such as its file system, network settings and so on to this process.&lt;/p>
+&lt;p>This makes the host OS consider a Docker container as just another process running on the system. Since the container is running as a process, we can actually use standard process monitoring tools, such as &lt;code>ps&lt;/code> and &lt;code>top&lt;/code>, to view and manage Docker.&lt;/p>
+&lt;p>In this blog post, we will examine how to find and access a container&amp;rsquo;s process ID (PID) and root filesystem directly from the host machine.&lt;/p>
+&lt;h2 id="getting-started">Getting Started&amp;hellip;&lt;/h2>
+&lt;p>Let&amp;rsquo;s spin up a container and tinker with it&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run -d --name nginx nginx:latest
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="access-container-pid">Access container PID&lt;/h2>
+&lt;p>Docker stores detailed information about the container, including its image, configuration, volume, process ID, and network, in a low-level JSON object. You can use the docker inspect command, pipe the output to jq to parse the JSON object as you wish. Alternatively, you can query a scalar element by its name using Go language template syntax, as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># SYNTAX: docker inspect -f &amp;#39;{{.State.Pid}}&amp;#39; &amp;lt;CONTAINER_ID|CONTAINER_NAME&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="check-the-proc-directory">Check the &lt;code>/proc&lt;/code> directory&lt;/h2>
+&lt;p>In Linux, the &lt;code>/proc&lt;/code> directory is a virtual file system that provides a view of the system&amp;rsquo;s running processes. It contains files and directories that are dynamically generated by the kernel to provide information about the processes, hardware, and other system information.&lt;/p>
+&lt;p>Each process running on the system has its own subdirectory under &lt;code>/proc&lt;/code>, identified by its process ID (PID). For example, if you have a process id = 12345, you&amp;rsquo;d find its subdirectory in this path: &lt;code>/proc/12345&lt;/code>. Inside the PID subdirectory (e.g. &lt;code>/proc/12345&lt;/code> in our case), you can find various files that provide information about the process, such as its memory usage, file descriptors, and more.&lt;/p>
+&lt;p>So, since the Nginx container that we spun up previously is just a process, we should see a directory named after its PID in &lt;code>/proc&lt;/code>.&lt;/p>
+&lt;p>Let&amp;rsquo;s re-run the above command and assign the output to a variable, amd &lt;code>ls&lt;/code> its &lt;code>proc&lt;/code> directory:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">PID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output contains everything related to the container process. Explore the &lt;code>cgroup&lt;/code> or &lt;code>environ&lt;/code> files. Feel free to inspect the other files as well.&lt;/p>
+&lt;p>Now let&amp;rsquo;s inspect the container&amp;rsquo;s &amp;ldquo;root&amp;rdquo; filesystem &lt;code>/proc/$PID/root&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>/root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If we &lt;code>exec&lt;/code> into the container, we can see the same content from inside the container&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker &lt;span class="nb">exec&lt;/span> -it nginx sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@ed08325bda2d:/# ls
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="manipulate-the-container-process">Manipulate the container process&lt;/h2>
+&lt;p>Like any process on the host, you can control it, but with some limitations. You can see below how the container was terminated using the &lt;code>kill&lt;/code> command without interacting with the Docker daemon.&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ps aux &lt;span class="p">|&lt;/span> grep &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">8929&lt;/span> 0.0 0.0 &lt;span class="m">8936&lt;/span> &lt;span class="m">5872&lt;/span> ? Ss 11:30 0:00 nginx: master process nginx -g daemon off&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">9053&lt;/span> 0.0 0.0 &lt;span class="m">17864&lt;/span> &lt;span class="m">2408&lt;/span> pts/4 S+ 11:31 0:00 grep --color&lt;span class="o">=&lt;/span>auto &lt;span class="m">8929&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">522e39dfc08e nginx &lt;span class="s2">&amp;#34;/docker-entrypoint.…&amp;#34;&lt;/span> &lt;span class="m">10&lt;/span> minutes ago Up &lt;span class="m">7&lt;/span> minutes 80/tcp nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">kill&lt;/span> -9 &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="conclusion">Conclusion&lt;/h2>
+&lt;p>We explored how to find a container&amp;rsquo;s process ID and how to access its root filesystem from the host. Unlike virtual machines, containers are isolated processes running in the host. This approach allows Docker to provide lightweight, efficient containerization that can be easily managed and monitored using standard Linux tools. It also allows Docker to run on a wide variety of Linux systems, without requiring any special kernel modifications or configurations.&lt;/p></description></item></channel></rss>

@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>how to on Shakir</title><link>https://demo.stack.jimmycai.com/tags/how-to/</link><description>Recent content in how to on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Thu, 22 Jun 2023 08:34:22 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/tags/how-to/index.xml" rel="self" type="application/rss+xml"/><item><title>Importing functions in shell scripting</title><link>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</link><pubDate>Thu, 22 Jun 2023 08:34:22 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</guid><description>&lt;p>In this post, I will show you how to &lt;em>source&lt;/em> (load) a Bash function from a local or remote source (e.g. a file in Github) into the current shell.&lt;/p>
+&lt;p>In shell scripting, using the &lt;code>source&lt;/code> command (also known as the dot &amp;ldquo;&lt;code>.&lt;/code>&amp;rdquo; command) allows to read and execute commands from a script file, and load its content into your current shell. This makes all variables, functions, and aliases defined in that script file become available in the current shell session.&lt;/p>
+&lt;h2 id="load-from-local-file">Load from local file&lt;/h2>
+&lt;p>Similar to importing libraries in programming languages, you can organize your freqnetly used code in different files in your project directory and then load them as you need. See this example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"># Project directory tree
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── lib/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── var/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── stuff.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">└── main_script.sh
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you want to import a function from &lt;code>root/lib/common.sh&lt;/code> to &lt;code>main_script.sh&lt;/code>, you only need to source that file:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="c1"># *** main_script.sh ***&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">source&lt;/span> lib/common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># code&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="load-from-remote-file">Load from remote file&lt;/h2>
+&lt;p>To load script content into your current shell without downloading the remote file, you can &lt;code>curl&lt;/code> the content of the script and redirect it to a &lt;code>source&lt;/code> command as the following (don&amp;rsquo;t forget the &lt;code>-s&lt;/code> flag to silence curl&amp;rsquo;s download info):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can use a dot `.` instead of `source` as well&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>curl -s https://raw.githubusercontent.com/shakir85/utils/main/print_hello&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Remote file content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>print_hello&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;This is the boring hello world message&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>After that, you can invoke the &lt;code>print_hello&lt;/code> function from your current shell:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ print_hello
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">This is the boring hello world message
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This technique allows us to set environment variables, import functions, or modify the current shell&amp;rsquo;s behavior using the contents of a remote script. This is a cool trick when you do not want to persist the data of the remote script on the host or want to load functions or variables to the current working shell on the fly. The downside, though, is that if the remote content vanishes, your script could bust!&lt;/p></description></item><item><title>Control the default gateway In a dual NIC host</title><link>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</link><pubDate>Sat, 13 May 2023 21:34:49 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</guid><description>&lt;p>Having multiple network interfaces on one machine can be pretty handy. It gives you network backup and helps you bounce back if the network gets a bit erratic. So, in this post, I&amp;rsquo;ll walk you through setting up a &amp;lsquo;default gateway&amp;rsquo; on one interface to handle outbound traffic (internet), while keeping the second one reserved just for LAN networking. Also, I&amp;rsquo;ll share some quirky bits I had to figure out along the way&lt;/p>
+&lt;h2 id="setting-the-stage">Setting the stage&lt;/h2>
+&lt;p>I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one is an Ethernet port, and the other is a Wi-Fi device.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651.jpeg"
+width="256"
+height="281"
+srcset="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_480x0_resize_q75_box.jpeg 480w, https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_1024x0_resize_q75_box.jpeg 1024w"
+loading="lazy"
+alt="&amp;ldquo;ThinkCenter M710q Mini PC&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="91"
+data-flex-basis="218px"
+>&lt;/p>
+&lt;p>I also have access to two totally different networks. So, this arrangement allows the host to connect to two different, publicly routable IP addresses via two different gateways. My plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic. To make this happen, we just need to make sure the host always selects the wifi-interface&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;h2 id="gateway-and-interfaces-configuration">Gateway and interfaces configuration&lt;/h2>
+&lt;p>First, make sure that each interface is connected to its corresponding network and has been assigned a DHCP IP from its respective gateway.&lt;/p>
+&lt;h3 id="1-identify-the-interfaces">1. Identify the interfaces&lt;/h3>
+&lt;p>Open a terminal window and run &lt;code>ip address show&lt;/code> or &lt;code>ip a&lt;/code> for short:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip addr
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1: lo: &amp;lt;LOOPBACK,UP,LOWER_UP&amp;gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 127.0.0.1/8 scope host lo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 ::1/128 scope host
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2: enp0s31f6: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 6q:4b:40:29:2x:e1 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 10.10.50.36/24 brd 10.10.50.255 scope global dynamic noprefixroute enp0s31f6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">3: wlp2s0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc noqueue state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 1a:3b:70:31:51:63 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.20.13.25/16 brd 172.20.255.255 scope global dynamic noprefixroute wlp2s0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft 70380sec preferred_lft 70380sec
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP:&lt;/p>
+&lt;ol>
+&lt;li>Ethernet interface: &lt;code>enp0s31f6&lt;/code>&lt;/li>
+&lt;li>Wifi interface: &lt;code>wlp2s0&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;h3 id="2-identify-the-default-gateway-for-each-interface">2. Identify the default gateway for each interface&lt;/h3>
+&lt;p>We need to know each gateway&amp;rsquo;s IP address to set up the default gateway on the host. We can find that using the &lt;code>ip route&lt;/code> command&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 10.10.50.10 dev enp0s31f6 proto dhcp metric 100
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 172.20.1.1 dev wlp2s0 proto dhcp metric 600
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>From the output above, each interface has the following information&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Interface&lt;/th>
+&lt;th>Gateway&lt;/th>
+&lt;th>Assiged DHCP IP&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>enp0s31f6&lt;/td>
+&lt;td>10.10.50.10&lt;/td>
+&lt;td>10.10.50.36&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wlp2s0&lt;/td>
+&lt;td>172.20.1.1&lt;/td>
+&lt;td>172.20.13.25&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="3-reset-the-default-gateway">3. Reset the default gateway&lt;/h3>
+&lt;p>The operating system currently uses &lt;code>10.10.50.10&lt;/code> as the default gateway. To switch the default gateway to &lt;code>172.20.1.1&lt;/code>, we need to delete the default gateway and then set the second one as the default gateway.&lt;/p>
+&lt;p>Since each gateway represents a publicly routable IP address, let&amp;rsquo;s take note of the current public IP address on the host before updating the gateways:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-1-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Now let&amp;rsquo;s delete the current default gateway &lt;code>10.10.50.10&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route del default
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Set the default gateway to the interface we want (wifi interface):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route add default via 172.20.1.1 dev wlp2s0
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Check the public IP address again (it should return the second network&amp;rsquo;s public IP address):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-2-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="verify-gateway-change-using-tcpdump">Verify gateway change using &lt;code>tcpdump&lt;/code>&lt;/h3>
+&lt;p>You can use &lt;code>tcpdump&lt;/code> to verify that the public traffic has been re-routed to the second gateway (wifi NIC).&lt;/p>
+&lt;p>&lt;code>tcpdump&lt;/code> is a command line tool used to capture network traffic in real-time. It is a widely-used tool for troubleshooting networks and analyzing network activity.&lt;/p>
+&lt;p>In our case, &lt;code>tcpdump&lt;/code> can capture packets that are sent and received through the wifi NIC on the secondary gateway. This allows us to gather detailed information about each packet, including the source and destination addresses. Consequently, we can determine whether the host utilizes the wifi-NIC&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;p>Run &lt;code>tcpdump -D&lt;/code> as a root user to list active interfaces:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host:~# tcpdump -D
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1.enp0s31f6 [Up, Running, Connected]
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2.wlp2s0 [Up, Running, Wireless, Associated]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Run &lt;code>tcpdump -i wlp2s0 -n -nn&lt;/code> and inspect the output, note that we are using the &lt;code>-i&lt;/code> flag to target the wifi interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[1] 11:54:37.300783 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[2] 11:54:37.300785 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[3] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[4] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[5] 11:54:37.529574 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[6] 11:54:37.881405 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[7] 11:54:42.530855 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[8] 11:54:42.737942 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;blockquote>
+&lt;p>Note: the &lt;code>&amp;lt;Network-IP&amp;gt;&lt;/code> is the redacted wifi-NIC&amp;rsquo;s public IP address.&lt;/p>
+&lt;/blockquote>
+&lt;p>From the output, we can identify the following:&lt;/p>
+&lt;ul>
+&lt;li>Lines 1 to 4 show that the interface communicates with the default gateway we configured previously.&lt;/li>
+&lt;li>Lines 5 to 8 show that the interface&amp;rsquo;s local IP and a remote destination are talking to each other.&lt;/li>
+&lt;/ul>
+&lt;p>Now let&amp;rsquo;s do the same thing with the ethernet interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306031 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1088064413:1088064609, ack 4151802530, win 501, options [nop,nop,TS val 703782894 ecr 4187823825], length 196
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306385 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 196, win 18695, options [nop,nop,TS val 4187823851 ecr 703782894], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395515 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 196:568, ack 1, win 501, options [nop,nop,TS val 703782984 ecr 4187823851], length 372
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395740 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 568, win 18695, options [nop,nop,TS val 4187823940 ecr 703782984], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499285 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 568:916, ack 1, win 501, options [nop,nop,TS val 703783088 ecr 4187823940], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499721 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 916, win 18695, options [nop,nop,TS val 4187824044 ecr 703783088], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603219 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 916:1264, ack 1, win 501, options [nop,nop,TS val 703783192 ecr 4187824044], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603720 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 1264, win 18695, options [nop,nop,TS val 4187824148 ecr 703783192], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.707004 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1264:1612, ack 1, win 501, options [nop,nop,TS val 703783295 ecr 4187824148], length 348
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output above may seem verbose due to an ongoing TCP communication, with tcpdump displaying all the steps involved in the TCP connection process.&lt;/p>
+&lt;p>The interface&amp;rsquo;s IP: &lt;code>10.10.50.36&lt;/code> is engaged in communication with a local destination on the same subnet: &lt;code>10.10.50.209&lt;/code>, and vice versa, over port 22. (This is an active SSH tunnel from my laptop to the device.) The &lt;code>tcpdump&lt;/code> output is not showing any active WAN communication on this interface.&lt;/p>
+&lt;p>Mission accomplished! Now all WAN traffic is routed through gateway &lt;code>172.20.1.1&lt;/code>, and the ethernet interface that&amp;rsquo;s connected to gateway &lt;code>10.10.50.10&lt;/code> is only available for LAN connections.&lt;/p>
+&lt;h2 id="some-gotchas">Some gotchas&lt;/h2>
+&lt;p>During &lt;em>boot-time network configuration&lt;/em>, a race condition is likely to occur regarding which interface the operating system will utilize to set the default gateway.&lt;/p>
+&lt;p>Boot time network configuration is all about getting a host&amp;rsquo;s network interfaces ready to communicate when the OS is firing up. Basically, it&amp;rsquo;s setting up things like IP address, the network essentials, including the gateway address, so your device can link up with the network and chat with other devices. The operating system figures out the default gateway based on the first NIC that obtains an IP address and gateway info from its own gateway.&lt;/p>
+&lt;p>In my experience, the OS always seems to prefer the Ethernet interface when it&amp;rsquo;s setting up the default gateway. I think this is due to the fact that Ethernet uses dedicated physical cables for communication, while the wifi interface relies on wireless signals, which can be affected by interference and signal strength. This can make wifi take a couple of seconds to catch up.&lt;/p>
+&lt;p>Regardless, there are two solutions to remedy such a situation:&lt;/p>
+&lt;h3 id="1-use-etcrclocal-or-systemdrc-localservice">1. Use &lt;code>/etc/rc.local&lt;/code> or &lt;code>systemd/rc-local.service&lt;/code>&lt;/h3>
+&lt;p>Basically, add the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands explained above to the &lt;code>/etc/rc.local&lt;/code>. The &lt;code>/etc/rc.local&lt;/code> is a script file that is executed by the Linux init system during the boot process. The commands or scripts in the file are executed with root privileges, so it is important to use caution when modifying the file.&lt;/p>
+&lt;p>Note that the &lt;code>/etc/rc.local&lt;/code> file is deprecated in some Linux distributions, such as Ubuntu and Debian, in favor of &lt;code>systemd&lt;/code>. Systemd uses its own mechanism for executing scripts and services at boot time, and the equivalent of the &lt;code>/etc/rc.local&lt;/code> file in &lt;code>systemd&lt;/code> is the &lt;code>/etc/systemd/system/rc-local.service&lt;/code> file.&lt;/p>
+&lt;h3 id="2-use-the-good-ol-cron">2. Use the good ol&amp;rsquo; cron&lt;/h3>
+&lt;p>Add a CRON schedule to run the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands. This approach might introduce some network interruption when CRON is triggered. So wrapping these commands in a shell script with some &lt;code>if&lt;/code>-&lt;code>else&lt;/code> logic would be a good idea to check if the gateway has changed during boot time before updating it.&lt;/p>
+&lt;p>Example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;172.20.1.1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">CURRENT_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="k">$(&lt;/span>curl ifconfig.me&lt;span class="k">)&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;99.99.99.99&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">INTERFACE_ID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;wlp2s0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="o">[&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$CURRENT_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> !&lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> &lt;span class="o">]&lt;/span> &lt;span class="p">;&lt;/span> &lt;span class="k">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route del default
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route add default via &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> dev &lt;span class="nv">$INTERFACE_ID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">fi&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="signing-off-for-now">Signing off for now&lt;/h2>
+&lt;p>And that&amp;rsquo;s a wrap for now! Until the next post, keep on exploring, learning, and enjoying Linux networking. Catch you on the flip side! 🚀👋&lt;/p></description></item><item><title>A practical approach for using Docker scratch base layer</title><link>https://demo.stack.jimmycai.com/p/a-practical-approach-for-using-docker-scratch-base-layer/</link><pubDate>Fri, 28 Apr 2023 15:23:17 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/a-practical-approach-for-using-docker-scratch-base-layer/</guid><description>&lt;p>The scratch base is a Docker&amp;rsquo;s reserved &lt;em>blank image&lt;/em>, or an empty filesystem, that acts like an empty layer to create parent images. It is like an empty canvas. It&amp;rsquo;s where you start building containers from scratch (no pun intended!), adding only what your application needs, making it super minimal. This gives us complete control over what can be shipped inside the container.&lt;/p>
+&lt;p>In this post, I will show you two different ways to utilize the &amp;lsquo;scratch&amp;rsquo; base. The first part will explore how to create minimal Docker images primarily for sharing files with other images and use container hubs, like ECR and Docker Hub, as file storage. In the second part, I will discuss the advantages of using the scratch base layer for deploying single-binary applications.&lt;/p>
+&lt;h2 id="sharing-files-between-images">Sharing files between images&lt;/h2>
+&lt;p>When building images, Docker gives us the ability to pull files from other images (remote or local) using the &lt;code>--from=&lt;/code> option with the &lt;code>COPY&lt;/code> instruction in Dockerfile as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>foo:1.2 /content /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Other build commands ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>What&amp;rsquo;s neat about this is that it enables us to cherry-pick specific files from another image and toss them into our new image while it&amp;rsquo;s building. And the cherry on top? You can even pick files from a specific image by specifying in its tag. So if you have two tags for the image foo: &lt;code>foo:latest&lt;/code> and &lt;code>foo:1.2&lt;/code>, you can pull files from the version 1.2 on the fly.&lt;/p>
+&lt;h3 id="treat-your-container-hub-as-a-remote-storage">Treat your container hub as a remote storage&lt;/h3>
+&lt;p>Since we can copy files from remote images into a Dockerfile to include them in new image builds, we can actually store project files in the container registry as container images. You might wonder, why would you do that? Why not just use object storage like AWS S3 or even a Git repo to store and fetch files dynamically?&lt;/p>
+&lt;p>Well, it&amp;rsquo;s just an additional option that comes with its own set of benefits:&lt;/p>
+&lt;ol>
+&lt;li>
+&lt;p>You don&amp;rsquo;t need to fuss with remote storage authentication especially if you&amp;rsquo;re already logged in to your container registry. You&amp;rsquo;re already authenticated, which is super handy in CI/CD pipelines.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>It brings reproducibility to the table. Every image in your pipeline can fetch files from a single source (image) that the pipeline is already has access to. This consistency makes it easy to replicate builds.&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;p>But, be aware that poorly planning how you use this approach can turn it into a dependency hill, and you might end up shooting yourself in the foot. So, use it wisely and be sure to document your approach.&lt;/p>
+&lt;p>So, if your intention is to use Docker images solely for storing files, then here&amp;rsquo;s the approach you should take:&lt;/p>
+&lt;p>Dockerfile content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="c"># Use scratch image, you don&amp;#39;t need a distro&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Copy all files you want to share from other images&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> somescript.sh /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> somearchive.tar.gz /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Build the image:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build -t foo:1.2 .
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Push to remote (skip if you want the image to be local)&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker push shakir85/foo:1.2
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Then, copy the files from the remote container registry into your Docekrfile:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="c"># This is your application image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Get files from remote image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> --from&lt;span class="o">=&lt;/span>shakir85/project_files:latest /content /content&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Build your image&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Although you can achieve the same result with minimal images like Alpine or Busybox, using a distro-based image solely for file storage and sharing in Docker is not as efficient as using scratch base image.&lt;/p>
+&lt;h2 id="use-sctach-base-for-single-binary-containers">Use sctach base for single binary containers&lt;/h2>
+&lt;p>The scratch base layer can be an excellent choice for creating single-binary containers when your application and its dependencies are entirely self-contained within a single executable file.&lt;/p>
+&lt;p>When you use &lt;code>FROM scratch&lt;/code>, you start with an empty filesystem, and you can add only what is absolutely necessary for your application to run. This approach can help produce minimal container with a very small footprint because it contains only your application binary and nothing else.&lt;/p>
+&lt;p>The catch is that, since the scratch layer is essentially an empty filesystem, your application must be &lt;a class="link" href="https://en.wikipedia.org/wiki/Static_build" target="_blank" rel="noopener"
+>statically compiled&lt;/a>. Also, keep in mind that because your application is going to be statically compiled, a small-sized container is not guaranteed. The container&amp;rsquo;s size really depends on the type and requirements of the application and the number of libraries or dependencies that need to be included (compiled) along with the application.&lt;/p>
+&lt;p>That being said, let&amp;rsquo;s take a look at this simple hello-world C code:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-c" data-lang="c">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#include&lt;/span> &lt;span class="cpf">&amp;lt;stdio.h&amp;gt;&lt;/span>&lt;span class="cp">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="kt">int&lt;/span> &lt;span class="nf">main&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="kt">void&lt;/span>&lt;span class="p">)&lt;/span> &lt;span class="p">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nf">printf&lt;/span>&lt;span class="p">(&lt;/span>&lt;span class="s">&amp;#34;hello world&amp;#34;&lt;/span>&lt;span class="p">);&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="k">return&lt;/span> &lt;span class="mi">0&lt;/span>&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="p">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Compile it using &lt;code>--static&lt;/code> flag to include the required libraries in the final executable:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">gcc -o hello --static hello.c
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Create the &lt;code>Dockerfile&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> scratch&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> hello /&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span> &lt;span class="s2">&amp;#34;/hello&amp;#34;&lt;/span> &lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Build the image and run the container:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build --no-cache -t my-scratch:latest .
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run --rm my-scratch
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If we try to send an &lt;code>echo&lt;/code> command to the container, it will fail because there is no such a binary or application in the scratch container&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run --rm my-scratch &lt;span class="nb">echo&lt;/span> hi
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker: Error response from daemon: failed to create shim task: OCI runtime create failed:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">runc create failed: unable to start container process: exec:
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>: executable file not found in &lt;span class="nv">$PATH&lt;/span>: unknown.
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="bonus">Bonus&lt;/h3>
+&lt;p>Say, for example, we want to add the &lt;code>echo&lt;/code> command to the scratch container. Since &lt;code>echo&lt;/code> is a compiled binary, we may think we can copy it from another parent image into the scratch image using &lt;code>COPY --from=ubuntu:latest /usr/bin/echo /&lt;/code> in the Dockerfile.&lt;/p>
+&lt;p>However, since &lt;code>echo&lt;/code> is a dynamically linked binary, the &lt;code>echo&lt;/code> binary will need some dependencies in order to run. We can use the &lt;code>ldd&lt;/code> command&lt;sup id="fnref:1">&lt;a href="#fn:1" class="footnote-ref" role="doc-noteref">1&lt;/a>&lt;/sup> to view what libraries &lt;code>echo&lt;/code> depends on. Let&amp;rsquo;s jump into an Ubuntu container and examine that:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run -it --rm ubuntu:latest bash
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@cd3dd0afeb53:/# which &lt;span class="nb">echo&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">/usr/bin/echo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@cd3dd0afeb53:/# ldd /usr/bin/echo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> linux-vdso.so.1 &lt;span class="o">(&lt;/span>0x00007ffe99d81000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> libc.so.6 &lt;span class="o">=&lt;/span>&amp;gt; /lib/x86_64-linux-gnu/libc.so.6 &lt;span class="o">(&lt;/span>0x00007fecf34c3000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> /lib64/ld-linux-x86-64.so.2 &lt;span class="o">(&lt;/span>0x00007fecf36f9000&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output shows the &lt;code>echo&lt;/code> command&amp;rsquo;s dependencies that must be in the container, which without them, the &lt;code>echo&lt;/code> command will not work.&lt;/p>
+&lt;div class="footnotes" role="doc-endnotes">
+&lt;hr>
+&lt;ol>
+&lt;li id="fn:1">
+&lt;p>This &lt;a class="link" href="https://www.reddit.com/r/linux/comments/ylg6rd/linux_instrumentation_part_4_ldd/?utm_source=share&amp;amp;utm_medium=web2x&amp;amp;context=3" target="_blank" rel="noopener"
+>Reddit post&lt;/a> shows some interesting facts about &lt;code>ldd&lt;/code>.&amp;#160;&lt;a href="#fnref:1" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/div></description></item></channel></rss>

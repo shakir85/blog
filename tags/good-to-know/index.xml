@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>good to know on Shakir</title><link>https://demo.stack.jimmycai.com/tags/good-to-know/</link><description>Recent content in good to know on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 16 Aug 2023 23:17:40 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/tags/good-to-know/index.xml" rel="self" type="application/rss+xml"/><item><title>Understanding inodes</title><link>https://demo.stack.jimmycai.com/p/understanding-inodes/</link><pubDate>Wed, 16 Aug 2023 23:17:40 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/understanding-inodes/</guid><description>&lt;p>In Unix-like operating systems, an inode (short for &amp;ldquo;index node&amp;rdquo;) is a data structure that stores metadata about a file or directory. Each file or directory on a filesystem is associated with a unique inode which contains information such as:&lt;/p>
+&lt;ul>
+&lt;li>File type (regular file, directory, symbolic link, device file, etc.)&lt;sup id="fnref:1">&lt;a href="#fn:1" class="footnote-ref" role="doc-noteref">1&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>Permissions (read, write, execute) for the owner, group, and others.&lt;/li>
+&lt;li>Ownership (user and group) of the file.&lt;/li>
+&lt;li>File size in bytes.&lt;/li>
+&lt;li>Timestamps indicate when the file was accessed and modified and when the inode itself was last modified&lt;sup id="fnref:2">&lt;a href="#fn:2" class="footnote-ref" role="doc-noteref">2&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>The number of hard links to the file&lt;sup id="fnref:3">&lt;a href="#fn:3" class="footnote-ref" role="doc-noteref">3&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>Disk block pointers point to the data blocks on the storage device.&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/understanding-inodes/example.png"
+width="531"
+height="111"
+srcset="https://demo.stack.jimmycai.com/p/understanding-inodes/example_hua27a6af337a5b1ab6468d9c1e64394af_10677_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/understanding-inodes/example_hua27a6af337a5b1ab6468d9c1e64394af_10677_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Example: inode of an empty file&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="478"
+data-flex-basis="1148px"
+>&lt;/p>
+&lt;p>In this post, I&amp;rsquo;ll cover the basics of inodes – how to identify issues tied to them, and ways to troubleshoot. Keep in mind that inodes can become quite complex because they touch various parts of the filesystem.&lt;/p>
+&lt;h2 id="why-the-system-needs-something-like-inodes">Why the system needs something like inodes?&lt;/h2>
+&lt;p>When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file&amp;rsquo;s metadata and the data-blocks location on the disk.&lt;/p>
+&lt;p>Therefore, an inode is allocated to store the file (or directory) metadata, which allow the filesystem to properly manage file access and storage. This also make operations like finding files by name, checking permissions, and tracking file sizes easy for the OS.&lt;/p>
+&lt;p>This is in general. The specific implementation and terminology may vary slightly depending on the filesystem type and the OS version.&lt;/p>
+&lt;h2 id="inode-capacity">Inode capacity&lt;/h2>
+&lt;p>For a filesystem, there is a quota for its inodes. The number of inodes available on a filesystem is determined during the filesystem formatting and is usually fixed number. This means that if a filesystem runs out of available inodes, you may be unable to create new files or directories, even if there is a free disk space.&lt;/p>
+&lt;h3 id="in-inode-we-trust">In inode, we trust!&lt;/h3>
+&lt;p>So, there is a capacity for inodes — great. But what happens if we run out of them?&lt;/p>
+&lt;p>Running out of inodes (inode exhaustion) can lead to weird system failures. You might suspect that the system has run out of available inodes when a program or process fails to create a file or directory due to insufficient storage, as the error message indicates.&lt;/p>
+&lt;p>Generally, it is unlikely to run out of inodes before running out of storage. But this is not impossible, especially when there are a lot of processes &lt;em>writing small files&lt;/em> constantly for a long time.&lt;/p>
+&lt;p>So if you can&amp;rsquo;t create a file, and the error message states that you do not have enough space, even though you have disk space, then most likely you&amp;rsquo;ve run out of inodes.&lt;/p>
+&lt;h2 id="reasons-for-inodes-exhaustion">Reasons for inodes exhaustion&lt;/h2>
+&lt;p>Inode exhaustion can be caused by (but not limited to) the following factors:&lt;/p>
+&lt;h3 id="small-files-and-directories">Small files and directories&lt;/h3>
+&lt;p>If you have a ton of very small files and directories, each will consume an inode, which will quickly deplete the available inode pool. Regardless of whether or not there is plenty of free space on the disk.&lt;/p>
+&lt;h3 id="lots-of-small-writes">Lots of small writes&lt;/h3>
+&lt;p>Related to the previous point, frequent small writes, such as those caused by a lot of logging or temporary file creation, can contribute to inode exhaustion. These small writes create new inodes each time, and on the long run this can lead to a depletion of available inodes.&lt;/p>
+&lt;h3 id="temporary-files">Temporary files&lt;/h3>
+&lt;p>Applications that generate many temp files without cleanup can exhaust inodes. These temporary files accumulate and consume inodes if they are not frequently cleaned up.&lt;/p>
+&lt;h3 id="software-builds-and-compilation">Software builds and compilation&lt;/h3>
+&lt;p>Software development processes involving frequent compilation and code builds can create many temp files and directories. For example, building NodeJS apps is known for creating a ton of small files and cache. Over time, these files can contribute to inode exhaustion.&lt;/p>
+&lt;h3 id="excessive-filesystem-operations">Excessive filesystem operations&lt;/h3>
+&lt;p>Certain applications or scripts that frequently create, modify, or delete files and directories can lead to inode exhaustion if not properly controlled.&lt;/p>
+&lt;h3 id="bundeld-servers">Bundeld Servers&lt;/h3>
+&lt;p>Mail servers, content management servers (e.g., WordPress), and backup servers can also be reasons for running out of inodes. So, it&amp;rsquo;s a good practice to be aware of how these servers operate and how they interact with the file system.&lt;/p>
+&lt;h2 id="how-to-fix-inode-exhaustion">How to fix inode exhaustion?&lt;/h2>
+&lt;p>First, ensure whether you’re running out of inodes or not:
+&lt;img src="https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes.png"
+width="915"
+height="341"
+srcset="https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes_hu31c45bed60a1c872f961908e5df4c338_52254_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes_hu31c45bed60a1c872f961908e5df4c338_52254_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Check available inodes&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="268"
+data-flex-basis="643px"
+>&lt;/p>
+&lt;p>You might think that just restarting the server would fix the problem, but that&amp;rsquo;s not necesserly right. The issue is more about the filesystem itself and not the operating system processes.&lt;/p>
+&lt;p>The filesystem is persisted on disk, so a reboot does not modify the underlying filesystem properties. If the filesystem was already experiencing inode exhaustion before the reboot, the same issue will persist after the reboot.&lt;/p>
+&lt;p>A reboot &lt;em>might&lt;/em> be helpful only to clear out stale or stuck processes that keep trying to write tiny files. But the reboot itself does not directly fix the underlying filesystem issue.&lt;/p>
+&lt;h3 id="identify-the-issue">Identify the issue&lt;/h3>
+&lt;ul>
+&lt;li>Monitor filesystem usage and identify when inode exhaustion occurs.&lt;/li>
+&lt;li>Review error messages, logs, and filesystem reports to determine the cause of the issue.&lt;/li>
+&lt;li>If you encounter an error message indicating insufficient storage capacity, despite being certain that there is available space, it may suggest an inode issue.&lt;/li>
+&lt;/ul>
+&lt;h3 id="cleanup-and-delete-unnecessary-files">Cleanup and delete unnecessary files&lt;/h3>
+&lt;ul>
+&lt;li>Identify and delete unnecessary files. Check users&amp;rsquo; files, and ensure temporary files are cleaned up.&lt;/li>
+&lt;li>Check out the &lt;code>/tpm&lt;/code> directory; applications usually use this location for scratch/cache data.&lt;/li>
+&lt;li>Clear the cache of package managers by using their command line options or manually locate and remove their cache directory.&lt;/li>
+&lt;li>Use tools like &lt;code>find&lt;/code> to locate and delete no longer needed files.&lt;/li>
+&lt;li>Clean up old log files, and ensure &lt;code>logrotate&lt;/code> is enabled and properly configured.&lt;/li>
+&lt;/ul>
+&lt;h3 id="storage-optimization">Storage optimization&lt;/h3>
+&lt;ul>
+&lt;li>Consider compressing unused files.&lt;/li>
+&lt;li>Remove redundant files.&lt;/li>
+&lt;li>Avoid excessive nested directories.&lt;/li>
+&lt;li>Consider using alternative storage like a NAS or other network filesystem.&lt;/li>
+&lt;/ul>
+&lt;h3 id="prevent-it-from-happening-again">Prevent it from happening again&lt;/h3>
+&lt;ul>
+&lt;li>Implement regular automated cleanup tasks.&lt;/li>
+&lt;li>Reorganizing and tidying up the whole filesystem might be needed, this will need a storage expert.&lt;/li>
+&lt;li>If you&amp;rsquo;re running into this problem often while compiling software in your CI/CD pipeline, you might want to think about using a Docker container to build the app and then stash away the build artifacts using Docker bind mounts or &lt;a class="link" href="https://docs.docker.com/build/exporters/" target="_blank" rel="noopener"
+>docker exporter&lt;/a>. Then delete the build left overs.&lt;/li>
+&lt;/ul>
+&lt;div class="footnotes" role="doc-endnotes">
+&lt;hr>
+&lt;ol>
+&lt;li id="fn:1">
+&lt;p>The first column of the left of the output of the &lt;code>ls -l&lt;/code> command shows file types. The &lt;code>c&lt;/code>, &lt;code>d&lt;/code> are charcter and device files, &lt;code>l&lt;/code> for symlinks, &lt;code>d&lt;/code> for directoreis and &lt;code>-&lt;/code> for files.&amp;#160;&lt;a href="#fnref:1" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li id="fn:2">
+&lt;p>Use &lt;code>stat&lt;/code> command to view when a file created, accessed or modified as well as other file info.&amp;#160;&lt;a href="#fnref:2" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li id="fn:3">
+&lt;p>Unlike symlinks, which are references to file paths, hard links directly reference the underlying data blocks of a file on disk.&amp;#160;&lt;a href="#fnref:3" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/div></description></item><item><title>To CloudFront or not to CloudFront?</title><link>https://demo.stack.jimmycai.com/p/to-cloudfront-or-not-to-cloudfront/</link><pubDate>Tue, 01 Aug 2023 11:03:48 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/to-cloudfront-or-not-to-cloudfront/</guid><description>&lt;p>Using Amazon CloudFront to serve S3 data can be more cost-effective than serving data directly from S3 in some situations. In this post, I will discuss key points to consider when deciding to use CloudFront for serving S3 content at the edge.&lt;/p>
+&lt;h2 id="data-transfer-costs">Data transfer costs&lt;/h2>
+&lt;p>CloudFront can help reduce data transfer costs by caching and serving content from edge locations closer users. If your content is accessed &lt;em>frequently&lt;/em> by users from different geographic locations, CloudFront can reduce the amount of data transferred over the internet compared to serving content directly from an S3 bucket.&lt;/p>
+&lt;h2 id="latency-and-performance">Latency and performance&lt;/h2>
+&lt;p>CloudFront caches content at edge locations, which can significantly reduce latency and improve the overall performance for users. Users receive content from the nearest edge location, reducing the round-trip time to the original S3 bucket.&lt;/p>
+&lt;h2 id="request-patterns">Request patterns&lt;/h2>
+&lt;p>CloudFront can help reduce the number of requests made directly to your S3 bucket by handling a portion of the requests at the edge locations. This can be beneficial if you have a high volume of requests for the same content.&lt;/p>
+&lt;h2 id="edge-location-data-processing-lambdaedge-and-cloudfront-functions">Edge location data processing: Lambda@Edge, and CloudFront Functions&lt;/h2>
+&lt;p>CloudFront can also perform some data processing at the edge using &lt;a class="link" href="https://aws.amazon.com/lambda/edge/" target="_blank" rel="noopener"
+>Lambda@Edge&lt;/a>, or &lt;a class="link" href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html" target="_blank" rel="noopener"
+>CloudFront Functions&lt;/a>. Lambda@Edge and CloudFront Functions allows us to add a computing element when serving content at edge. This includes customizing routing to S3 buckets, auth and auth, bot mitigation, serve specific content when your website is in maintenance mode, and overall improved user experience without modifying your website code.&lt;/p>
+&lt;h2 id="consider-these-points-too">Consider these points too&lt;/h2>
+&lt;p>With all the mentioed features of CloudFront for serving S3 content at edge, it&amp;rsquo;s important to consider the following aspects as well:&lt;/p>
+&lt;h3 id="cloudfront-cost">CloudFront cost&lt;/h3>
+&lt;p>While CloudFront can help reduce data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching, i.e. requests always need to hit the backedn S3 bucket, then the return on investment (ROI) of using CloudFront for S3 content might not be as cost-effective as expected, and you might incur unnecessary additional costs.&lt;/p>
+&lt;h3 id="cache-invalidation">Cache invalidation&lt;/h3>
+&lt;p>Content Delivery Networks (CDNs) are ideal for serving static content. They are not typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, this is changing rapidly. CDN providers nowadays offer features to address these limitations as the demand for globally accessed web applications is increasing. See &lt;a class="link" href="https://aws.amazon.com/blogs/aws/amazon-cloudfront-support-for-dynamic-content" target="_blank" rel="noopener"
+>this announcement&lt;/a> from AWS in 2020.&lt;/p>
+&lt;p>If your data frequently changes and requires constant updates, you may need to have a good plan for managing cache invalidation and service costs.&lt;/p>
+&lt;h3 id="low-volume-data-transfer">Low volume data transfer&lt;/h3>
+&lt;p>For very small data-transfers, or infrequent access patterns, the cost advantage of using CloudFront for serving data from S3 might be less significant compared to fetching the data from the bucket directly.&lt;/p>
+&lt;h3 id="transfer-to-origin">Transfer to origin&lt;/h3>
+&lt;p>Data transfer from CloudFront to AWS services&amp;rsquo; origin is free, &lt;a class="link" href="https://aws.amazon.com/cloudfront/faqs/" target="_blank" rel="noopener"
+>see the General section of CloudFront FAQ&lt;/a>. However, it&amp;rsquo;s always a good idea to consult AWS documentation to understand any cost-related matters.&lt;/p>
+&lt;h3 id="consider-s3-corss-region-replication">Consider S3 Corss-Region Replication&lt;/h3>
+&lt;p>If your application does not benefit from caching but you still want to keep the S3 data close to your users (for READ only ops), then consider using S3 Corss-Region Replication instead of CloudFront.&lt;/p></description></item><item><title>Firewalls: stateful vs. stateless</title><link>https://demo.stack.jimmycai.com/p/firewalls-stateful-vs.-stateless/</link><pubDate>Mon, 24 Jul 2023 19:56:52 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/firewalls-stateful-vs.-stateless/</guid><description>&lt;p>Whether it&amp;rsquo;s an on-prem firewall or in the cloud, it&amp;rsquo;s important to understand the fundamental distinctions in firewall types. In this post, I will summerize the differences between stateful and stateless filtering in simple and basic terms.&lt;/p>
+&lt;h2 id="stateful-filtering">Stateful filtering&lt;/h2>
+&lt;p>Stateful filtering, is a firewall technique that tracks the state of network connections and makes decisions (such as allow/deny) based on the context of those connections. When a packet passes through a stateful firewall, the firewall keeps track of the state of the connection by creating an entry in a state table to monitor the connection&amp;rsquo;s status.&lt;/p>
+&lt;p>The state table contains information such as:&lt;/p>
+&lt;ul>
+&lt;li>Source&amp;rsquo;s IP address and port&lt;/li>
+&lt;li>Destination&amp;rsquo;s IP address and port&lt;/li>
+&lt;li>Connection status (e.g. established, new, related, or invalid).&lt;/li>
+&lt;/ul>
+&lt;p>By maintaining this state information, the firewall can &lt;strong>allow inbound traffic&lt;/strong> that is part of an outbound connection initiated from within the network. This &amp;ldquo;allow rule&amp;rdquo; does not have to be explicitly configured in the firewall to permit traffic from the destination back to the source. That&amp;rsquo;s whay they&amp;rsquo;re called &amp;ldquo;context-aware&amp;rdquo;, because this type is designed to understand the context of the conntection, where it&amp;rsquo;s coming from, where it&amp;rsquo;s going to, and who generated the connection.&lt;/p>
+&lt;p>Imagine your application sending a request, and when the destination sends the response back, the firewall just goes, &amp;lsquo;Oh, I&amp;rsquo;ve got this! It&amp;rsquo;s coming from a destination that a client from my network initiated the connection with. No need to have the destination IP in the allow-list; we&amp;rsquo;re all good to go!&amp;rsquo;.&lt;/p>
+&lt;p>The firewall will continue blocking traffic that does not &lt;strong>correspond to an existing connection&lt;/strong> or violates the state table rules. Security Groups on major cloud providers typically operate in a stateful manner.&lt;/p>
+&lt;h3 id="advantages-of-stateful-filtering">Advantages of Stateful Filtering&lt;/h3>
+&lt;ul>
+&lt;li>Simplicity in implementation: No need to add an allow rule for the destination address if the connection originated from a client within the network.&lt;/li>
+&lt;li>Improved security: Only allows traffic from established connections within our network.&lt;/li>
+&lt;/ul>
+&lt;h2 id="stateless-filtering">Stateless Filtering&lt;/h2>
+&lt;p>Stateless filtering, is a firewall technique that examines individual packets without considering the context or state of the connection to which they belong. Each packet is analyzed independently based on predefined filtering rules. If a client within the network sends a request to a remote destination, the destination address must be on the firewall&amp;rsquo;s allow list, otherwise the client won&amp;rsquo;t receive a response.&lt;/p>
+&lt;p>Think of it like the customs kiosks at an airport in some country. They check arrivals and departures for travelers separately. The passengers&amp;rsquo; origin does not generally impact their work rules. All they know is whether a passenger is arriving or departing and whether they are permitted to enter or leave the country based on predefined rules.&lt;/p>
+&lt;p>In stateless filtering, the firewall evaluates each packet&amp;rsquo;s headers, such as source and destination IP, ports, and protocol type. If a packet matches one of the preconfigured rules, it is allowed or denied based on that rule&amp;rsquo;s criteria.&lt;/p>
+&lt;p>Stateless firewalls do not maintain a state table to track connection states, meaning they do not know established connections. As a result, they cannot dynamically allow response traffic for outgoing connections or handle traffic related to established connections.&lt;/p>
+&lt;p>In AWS, Network Access List (NACLs) operate in a stateless manner.&lt;/p>
+&lt;h3 id="advantages-of-stateless-filtering">Advantages of Stateless Filtering&lt;/h3>
+&lt;ul>
+&lt;li>Efficiency. Each packet is evaluated in isolation without the overhead of maintaining a state table.&lt;/li>
+&lt;li>Useful for basic traffic filtering and access control based on packet headers.&lt;/li>
+&lt;/ul>
+&lt;h2 id="scope-of-implementation">Scope of implementation&lt;/h2>
+&lt;p>The fundamental concepts of stateful and stateless firewalls are consistent across firewall appliance manufacturers as well as cloud providers. However, the implementation of stateless and stateful firewall functionality (i.e. how they do it) can vary.&lt;/p>
+&lt;p>For example, in AWS, stateful firewall functionality is implemented using Security Groups, which operate at the instance level. And stateless firewall functionality can be achieved through Network ACLs (Access Control Lists - NACLs), which operate at the subnet level.&lt;/p>
+&lt;h2 id="comparison">Comparison&lt;/h2>
+&lt;ul>
+&lt;li>Stateful filtering is more sophisticated and provides better security by considering the state of connections. It can dynamically allow responses to outgoing traffic and handle related traffic.&lt;/li>
+&lt;li>Simplicity in usage: they&amp;rsquo;re good when simpler filtering rules based on static rules are sufficient.&lt;/li>
+&lt;/ul>
+&lt;h2 id="finally">Finally&lt;/h2>
+&lt;p>In practice, firewalls often utilize both stateful and stateless filtering at various levels, such as subnet, or gateway, to provide complete security. Stateful filtering is commonly used for connection tracking, while stateless filtering allows for quick packet evaluation.&lt;/p></description></item><item><title>Importing functions in shell scripting</title><link>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</link><pubDate>Thu, 22 Jun 2023 08:34:22 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</guid><description>&lt;p>In this post, I will show you how to &lt;em>source&lt;/em> (load) a Bash function from a local or remote source (e.g. a file in Github) into the current shell.&lt;/p>
+&lt;p>In shell scripting, using the &lt;code>source&lt;/code> command (also known as the dot &amp;ldquo;&lt;code>.&lt;/code>&amp;rdquo; command) allows to read and execute commands from a script file, and load its content into your current shell. This makes all variables, functions, and aliases defined in that script file become available in the current shell session.&lt;/p>
+&lt;h2 id="load-from-local-file">Load from local file&lt;/h2>
+&lt;p>Similar to importing libraries in programming languages, you can organize your freqnetly used code in different files in your project directory and then load them as you need. See this example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"># Project directory tree
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── lib/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── var/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── stuff.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">└── main_script.sh
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you want to import a function from &lt;code>root/lib/common.sh&lt;/code> to &lt;code>main_script.sh&lt;/code>, you only need to source that file:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="c1"># *** main_script.sh ***&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">source&lt;/span> lib/common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># code&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="load-from-remote-file">Load from remote file&lt;/h2>
+&lt;p>To load script content into your current shell without downloading the remote file, you can &lt;code>curl&lt;/code> the content of the script and redirect it to a &lt;code>source&lt;/code> command as the following (don&amp;rsquo;t forget the &lt;code>-s&lt;/code> flag to silence curl&amp;rsquo;s download info):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can use a dot `.` instead of `source` as well&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>curl -s https://raw.githubusercontent.com/shakir85/utils/main/print_hello&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Remote file content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>print_hello&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;This is the boring hello world message&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>After that, you can invoke the &lt;code>print_hello&lt;/code> function from your current shell:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ print_hello
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">This is the boring hello world message
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This technique allows us to set environment variables, import functions, or modify the current shell&amp;rsquo;s behavior using the contents of a remote script. This is a cool trick when you do not want to persist the data of the remote script on the host or want to load functions or variables to the current working shell on the fly. The downside, though, is that if the remote content vanishes, your script could bust!&lt;/p></description></item><item><title>Docker containers process</title><link>https://demo.stack.jimmycai.com/p/docker-containers-process/</link><pubDate>Sat, 22 Apr 2023 11:17:28 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/docker-containers-process/</guid><description>&lt;p>A Docker container is a process, isolated from the host and other containers, running on the system using various Linux kernel features, such as namespaces and cgroups. And this is the main differentiator between VMs and containers.&lt;/p>
+&lt;p>When you start a Docker container, Docker creates a new process in the host system&amp;rsquo;s process tree. Then it will apply the container&amp;rsquo;s configuration such as its file system, network settings and so on to this process.&lt;/p>
+&lt;p>This makes the host OS consider a Docker container as just another process running on the system. Since the container is running as a process, we can actually use standard process monitoring tools, such as &lt;code>ps&lt;/code> and &lt;code>top&lt;/code>, to view and manage Docker.&lt;/p>
+&lt;p>In this blog post, we will examine how to find and access a container&amp;rsquo;s process ID (PID) and root filesystem directly from the host machine.&lt;/p>
+&lt;h2 id="getting-started">Getting Started&amp;hellip;&lt;/h2>
+&lt;p>Let&amp;rsquo;s spin up a container and tinker with it&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run -d --name nginx nginx:latest
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="access-container-pid">Access container PID&lt;/h2>
+&lt;p>Docker stores detailed information about the container, including its image, configuration, volume, process ID, and network, in a low-level JSON object. You can use the docker inspect command, pipe the output to jq to parse the JSON object as you wish. Alternatively, you can query a scalar element by its name using Go language template syntax, as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># SYNTAX: docker inspect -f &amp;#39;{{.State.Pid}}&amp;#39; &amp;lt;CONTAINER_ID|CONTAINER_NAME&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="check-the-proc-directory">Check the &lt;code>/proc&lt;/code> directory&lt;/h2>
+&lt;p>In Linux, the &lt;code>/proc&lt;/code> directory is a virtual file system that provides a view of the system&amp;rsquo;s running processes. It contains files and directories that are dynamically generated by the kernel to provide information about the processes, hardware, and other system information.&lt;/p>
+&lt;p>Each process running on the system has its own subdirectory under &lt;code>/proc&lt;/code>, identified by its process ID (PID). For example, if you have a process id = 12345, you&amp;rsquo;d find its subdirectory in this path: &lt;code>/proc/12345&lt;/code>. Inside the PID subdirectory (e.g. &lt;code>/proc/12345&lt;/code> in our case), you can find various files that provide information about the process, such as its memory usage, file descriptors, and more.&lt;/p>
+&lt;p>So, since the Nginx container that we spun up previously is just a process, we should see a directory named after its PID in &lt;code>/proc&lt;/code>.&lt;/p>
+&lt;p>Let&amp;rsquo;s re-run the above command and assign the output to a variable, amd &lt;code>ls&lt;/code> its &lt;code>proc&lt;/code> directory:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">PID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output contains everything related to the container process. Explore the &lt;code>cgroup&lt;/code> or &lt;code>environ&lt;/code> files. Feel free to inspect the other files as well.&lt;/p>
+&lt;p>Now let&amp;rsquo;s inspect the container&amp;rsquo;s &amp;ldquo;root&amp;rdquo; filesystem &lt;code>/proc/$PID/root&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>/root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If we &lt;code>exec&lt;/code> into the container, we can see the same content from inside the container&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker &lt;span class="nb">exec&lt;/span> -it nginx sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@ed08325bda2d:/# ls
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="manipulate-the-container-process">Manipulate the container process&lt;/h2>
+&lt;p>Like any process on the host, you can control it, but with some limitations. You can see below how the container was terminated using the &lt;code>kill&lt;/code> command without interacting with the Docker daemon.&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ps aux &lt;span class="p">|&lt;/span> grep &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">8929&lt;/span> 0.0 0.0 &lt;span class="m">8936&lt;/span> &lt;span class="m">5872&lt;/span> ? Ss 11:30 0:00 nginx: master process nginx -g daemon off&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">9053&lt;/span> 0.0 0.0 &lt;span class="m">17864&lt;/span> &lt;span class="m">2408&lt;/span> pts/4 S+ 11:31 0:00 grep --color&lt;span class="o">=&lt;/span>auto &lt;span class="m">8929&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">522e39dfc08e nginx &lt;span class="s2">&amp;#34;/docker-entrypoint.…&amp;#34;&lt;/span> &lt;span class="m">10&lt;/span> minutes ago Up &lt;span class="m">7&lt;/span> minutes 80/tcp nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">kill&lt;/span> -9 &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="conclusion">Conclusion&lt;/h2>
+&lt;p>We explored how to find a container&amp;rsquo;s process ID and how to access its root filesystem from the host. Unlike virtual machines, containers are isolated processes running in the host. This approach allows Docker to provide lightweight, efficient containerization that can be easily managed and monitored using standard Linux tools. It also allows Docker to run on a wide variety of Linux systems, without requiring any special kernel modifications or configurations.&lt;/p></description></item></channel></rss>

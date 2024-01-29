@@ -1,0 +1,749 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>linux on Shakir</title><link>https://demo.stack.jimmycai.com/categories/linux/</link><description>Recent content in linux on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 16 Aug 2023 23:17:40 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/linux/index.xml" rel="self" type="application/rss+xml"/><item><title>Understanding inodes</title><link>https://demo.stack.jimmycai.com/p/understanding-inodes/</link><pubDate>Wed, 16 Aug 2023 23:17:40 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/understanding-inodes/</guid><description>&lt;p>In Unix-like operating systems, an inode (short for &amp;ldquo;index node&amp;rdquo;) is a data structure that stores metadata about a file or directory. Each file or directory on a filesystem is associated with a unique inode which contains information such as:&lt;/p>
+&lt;ul>
+&lt;li>File type (regular file, directory, symbolic link, device file, etc.)&lt;sup id="fnref:1">&lt;a href="#fn:1" class="footnote-ref" role="doc-noteref">1&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>Permissions (read, write, execute) for the owner, group, and others.&lt;/li>
+&lt;li>Ownership (user and group) of the file.&lt;/li>
+&lt;li>File size in bytes.&lt;/li>
+&lt;li>Timestamps indicate when the file was accessed and modified and when the inode itself was last modified&lt;sup id="fnref:2">&lt;a href="#fn:2" class="footnote-ref" role="doc-noteref">2&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>The number of hard links to the file&lt;sup id="fnref:3">&lt;a href="#fn:3" class="footnote-ref" role="doc-noteref">3&lt;/a>&lt;/sup>.&lt;/li>
+&lt;li>Disk block pointers point to the data blocks on the storage device.&lt;/li>
+&lt;/ul>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/understanding-inodes/example.png"
+width="531"
+height="111"
+srcset="https://demo.stack.jimmycai.com/p/understanding-inodes/example_hua27a6af337a5b1ab6468d9c1e64394af_10677_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/understanding-inodes/example_hua27a6af337a5b1ab6468d9c1e64394af_10677_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Example: inode of an empty file&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="478"
+data-flex-basis="1148px"
+>&lt;/p>
+&lt;p>In this post, I&amp;rsquo;ll cover the basics of inodes – how to identify issues tied to them, and ways to troubleshoot. Keep in mind that inodes can become quite complex because they touch various parts of the filesystem.&lt;/p>
+&lt;h2 id="why-the-system-needs-something-like-inodes">Why the system needs something like inodes?&lt;/h2>
+&lt;p>When you create a file or directory, there is metadata associated with it, including: file name, size, type, permissions, owner, group, and more. The operating system needs something to manage the file&amp;rsquo;s metadata and the data-blocks location on the disk.&lt;/p>
+&lt;p>Therefore, an inode is allocated to store the file (or directory) metadata, which allow the filesystem to properly manage file access and storage. This also make operations like finding files by name, checking permissions, and tracking file sizes easy for the OS.&lt;/p>
+&lt;p>This is in general. The specific implementation and terminology may vary slightly depending on the filesystem type and the OS version.&lt;/p>
+&lt;h2 id="inode-capacity">Inode capacity&lt;/h2>
+&lt;p>For a filesystem, there is a quota for its inodes. The number of inodes available on a filesystem is determined during the filesystem formatting and is usually fixed number. This means that if a filesystem runs out of available inodes, you may be unable to create new files or directories, even if there is a free disk space.&lt;/p>
+&lt;h3 id="in-inode-we-trust">In inode, we trust!&lt;/h3>
+&lt;p>So, there is a capacity for inodes — great. But what happens if we run out of them?&lt;/p>
+&lt;p>Running out of inodes (inode exhaustion) can lead to weird system failures. You might suspect that the system has run out of available inodes when a program or process fails to create a file or directory due to insufficient storage, as the error message indicates.&lt;/p>
+&lt;p>Generally, it is unlikely to run out of inodes before running out of storage. But this is not impossible, especially when there are a lot of processes &lt;em>writing small files&lt;/em> constantly for a long time.&lt;/p>
+&lt;p>So if you can&amp;rsquo;t create a file, and the error message states that you do not have enough space, even though you have disk space, then most likely you&amp;rsquo;ve run out of inodes.&lt;/p>
+&lt;h2 id="reasons-for-inodes-exhaustion">Reasons for inodes exhaustion&lt;/h2>
+&lt;p>Inode exhaustion can be caused by (but not limited to) the following factors:&lt;/p>
+&lt;h3 id="small-files-and-directories">Small files and directories&lt;/h3>
+&lt;p>If you have a ton of very small files and directories, each will consume an inode, which will quickly deplete the available inode pool. Regardless of whether or not there is plenty of free space on the disk.&lt;/p>
+&lt;h3 id="lots-of-small-writes">Lots of small writes&lt;/h3>
+&lt;p>Related to the previous point, frequent small writes, such as those caused by a lot of logging or temporary file creation, can contribute to inode exhaustion. These small writes create new inodes each time, and on the long run this can lead to a depletion of available inodes.&lt;/p>
+&lt;h3 id="temporary-files">Temporary files&lt;/h3>
+&lt;p>Applications that generate many temp files without cleanup can exhaust inodes. These temporary files accumulate and consume inodes if they are not frequently cleaned up.&lt;/p>
+&lt;h3 id="software-builds-and-compilation">Software builds and compilation&lt;/h3>
+&lt;p>Software development processes involving frequent compilation and code builds can create many temp files and directories. For example, building NodeJS apps is known for creating a ton of small files and cache. Over time, these files can contribute to inode exhaustion.&lt;/p>
+&lt;h3 id="excessive-filesystem-operations">Excessive filesystem operations&lt;/h3>
+&lt;p>Certain applications or scripts that frequently create, modify, or delete files and directories can lead to inode exhaustion if not properly controlled.&lt;/p>
+&lt;h3 id="bundeld-servers">Bundeld Servers&lt;/h3>
+&lt;p>Mail servers, content management servers (e.g., WordPress), and backup servers can also be reasons for running out of inodes. So, it&amp;rsquo;s a good practice to be aware of how these servers operate and how they interact with the file system.&lt;/p>
+&lt;h2 id="how-to-fix-inode-exhaustion">How to fix inode exhaustion?&lt;/h2>
+&lt;p>First, ensure whether you’re running out of inodes or not:
+&lt;img src="https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes.png"
+width="915"
+height="341"
+srcset="https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes_hu31c45bed60a1c872f961908e5df4c338_52254_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/understanding-inodes/check_available_inodes_hu31c45bed60a1c872f961908e5df4c338_52254_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Check available inodes&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="268"
+data-flex-basis="643px"
+>&lt;/p>
+&lt;p>You might think that just restarting the server would fix the problem, but that&amp;rsquo;s not necesserly right. The issue is more about the filesystem itself and not the operating system processes.&lt;/p>
+&lt;p>The filesystem is persisted on disk, so a reboot does not modify the underlying filesystem properties. If the filesystem was already experiencing inode exhaustion before the reboot, the same issue will persist after the reboot.&lt;/p>
+&lt;p>A reboot &lt;em>might&lt;/em> be helpful only to clear out stale or stuck processes that keep trying to write tiny files. But the reboot itself does not directly fix the underlying filesystem issue.&lt;/p>
+&lt;h3 id="identify-the-issue">Identify the issue&lt;/h3>
+&lt;ul>
+&lt;li>Monitor filesystem usage and identify when inode exhaustion occurs.&lt;/li>
+&lt;li>Review error messages, logs, and filesystem reports to determine the cause of the issue.&lt;/li>
+&lt;li>If you encounter an error message indicating insufficient storage capacity, despite being certain that there is available space, it may suggest an inode issue.&lt;/li>
+&lt;/ul>
+&lt;h3 id="cleanup-and-delete-unnecessary-files">Cleanup and delete unnecessary files&lt;/h3>
+&lt;ul>
+&lt;li>Identify and delete unnecessary files. Check users&amp;rsquo; files, and ensure temporary files are cleaned up.&lt;/li>
+&lt;li>Check out the &lt;code>/tpm&lt;/code> directory; applications usually use this location for scratch/cache data.&lt;/li>
+&lt;li>Clear the cache of package managers by using their command line options or manually locate and remove their cache directory.&lt;/li>
+&lt;li>Use tools like &lt;code>find&lt;/code> to locate and delete no longer needed files.&lt;/li>
+&lt;li>Clean up old log files, and ensure &lt;code>logrotate&lt;/code> is enabled and properly configured.&lt;/li>
+&lt;/ul>
+&lt;h3 id="storage-optimization">Storage optimization&lt;/h3>
+&lt;ul>
+&lt;li>Consider compressing unused files.&lt;/li>
+&lt;li>Remove redundant files.&lt;/li>
+&lt;li>Avoid excessive nested directories.&lt;/li>
+&lt;li>Consider using alternative storage like a NAS or other network filesystem.&lt;/li>
+&lt;/ul>
+&lt;h3 id="prevent-it-from-happening-again">Prevent it from happening again&lt;/h3>
+&lt;ul>
+&lt;li>Implement regular automated cleanup tasks.&lt;/li>
+&lt;li>Reorganizing and tidying up the whole filesystem might be needed, this will need a storage expert.&lt;/li>
+&lt;li>If you&amp;rsquo;re running into this problem often while compiling software in your CI/CD pipeline, you might want to think about using a Docker container to build the app and then stash away the build artifacts using Docker bind mounts or &lt;a class="link" href="https://docs.docker.com/build/exporters/" target="_blank" rel="noopener"
+>docker exporter&lt;/a>. Then delete the build left overs.&lt;/li>
+&lt;/ul>
+&lt;div class="footnotes" role="doc-endnotes">
+&lt;hr>
+&lt;ol>
+&lt;li id="fn:1">
+&lt;p>The first column of the left of the output of the &lt;code>ls -l&lt;/code> command shows file types. The &lt;code>c&lt;/code>, &lt;code>d&lt;/code> are charcter and device files, &lt;code>l&lt;/code> for symlinks, &lt;code>d&lt;/code> for directoreis and &lt;code>-&lt;/code> for files.&amp;#160;&lt;a href="#fnref:1" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li id="fn:2">
+&lt;p>Use &lt;code>stat&lt;/code> command to view when a file created, accessed or modified as well as other file info.&amp;#160;&lt;a href="#fnref:2" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li id="fn:3">
+&lt;p>Unlike symlinks, which are references to file paths, hard links directly reference the underlying data blocks of a file on disk.&amp;#160;&lt;a href="#fnref:3" class="footnote-backref" role="doc-backlink">&amp;#x21a9;&amp;#xfe0e;&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ol>
+&lt;/div></description></item><item><title>Docker CMD and ENTRYPOINT differences</title><link>https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/</link><pubDate>Sun, 16 Jul 2023 17:34:13 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/</guid><description>&lt;p>In this post, I will demonstrate how &lt;code>ENTRYPOINT&lt;/code> and &lt;code>CMD&lt;/code> work together, their differences, and how to redirect the runtime execution flow from &lt;code>ENTRYPOINT&lt;/code> to the &lt;code>CMD&lt;/code> where the main application&amp;rsquo;s command is executed.&lt;/p>
+&lt;h2 id="the-way-entrypoint-and-cmd-work-together">The way &lt;code>ENTRYPOINT&lt;/code> and &lt;code>CMD&lt;/code> work together&lt;/h2>
+&lt;p>In most cases, &lt;code>CMD&lt;/code> and &lt;code>ENTRYPOINT&lt;/code> instructions can be used interchangeably. Also, you do not have to use both of them together in every Dockerfile you develop. However, each instruction offers additional features that can help you control how you want to run your application. Before moving forward, let&amp;rsquo;s quickly review what each instruction does:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>&lt;code>ENTRYPOINT&lt;/code> is like the &amp;ldquo;main command&amp;rdquo; or the starting point for your container. It&amp;rsquo;s the default action the container takes when you run it. You might use &lt;code>ENTRYPOINT&lt;/code> to start a web server or run a specific application.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>&lt;code>CMD&lt;/code> can be used to provide additional arguments or options to the command specified in &lt;code>ENTRYPOINT&lt;/code>. It&amp;rsquo;s like saying, &amp;ldquo;When you start the container using the &lt;code>ENTRYPOINT&lt;/code> command, here are some extra args to pass to the executing app&amp;rdquo;. It is often used to pass &lt;em>default&lt;/em> arguments to &lt;code>ENTRYPOINT&lt;/code>. Note that we said: &amp;ldquo;default arguments&amp;rdquo; which we&amp;rsquo;ll explain what does that mean in a bit.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>So, &lt;code>ENTRYPOINT&lt;/code> sets the main command of the container, and &lt;code>CMD&lt;/code> provides default arguments to that command. Here is an example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;Hello world&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Running a container from this Dockerfile is similar to executing &lt;code>echo &amp;quot;Hello world&amp;quot;&lt;/code> in the command line. The &lt;code>echo&lt;/code> is the main app and &lt;code>Hello world&lt;/code> is the argument. Similarly, in the Dockerfile above, the content of the &lt;code>CMD&lt;/code> instruction is passed to the &lt;code>ENTRYPOINT&lt;/code> as the default argument. when we build and run the container without arguments it will print &amp;ldquo;Hello world&amp;rdquo;:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker build -t &lt;span class="nb">test&lt;/span> .
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-fallback" data-lang="fallback">&lt;span class="line">&lt;span class="cl">Hello world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="overriding-cmd">Overriding &lt;code>CMD&lt;/code>&lt;/h3>
+&lt;p>To override the &lt;code>CMD&lt;/code> that is defined in the Dockerfile (&lt;em>default&lt;/em> argument), you just pass the argument(s) after the image name:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span> &lt;span class="s1">&amp;#39;another hello world&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">another hello world
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This method also overrides the &lt;code>CMD&lt;/code> whether it&amp;rsquo;s used in combination with &lt;code>ENTRYPOINT&lt;/code> instruction or not.&lt;/p>
+&lt;h3 id="overriding-entrypoint">Overriding &lt;code>ENTRYPOINT&lt;/code>&lt;/h3>
+&lt;p>Given this Dockerfile:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> ubuntu&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;echo&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;Hello world&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>When you have a Dockerfile with only an &lt;code>ENTRYPOINT&lt;/code> (i.e. no &lt;code>CMD&lt;/code>), you need to use the &lt;code>--entrypoint&lt;/code> flag to override the entry-point command as the following:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># docker run --entrypoint &amp;lt;command&amp;gt; &amp;lt;image&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker run --entrypoint &lt;span class="s1">&amp;#39;printenv&amp;#39;&lt;/span> &lt;span class="nb">test&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">HOSTNAME=7ffd59696373
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">HOME=/root
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you try to supply a command at runtime without specifying the &lt;code>--entrypoint&lt;/code> flag, Docker will treat the that command as additional arguments to the command specified in the &lt;code>ENTRYPOINT&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run &lt;span class="nb">test&lt;/span> &lt;span class="s1">&amp;#39;printenv&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Output:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">Hello world printenv
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This is similar to an entry-point in Dockerfile like this: &lt;code>ENTRYPOINT [&amp;quot;echo&amp;quot;, &amp;quot;Hello world&amp;quot;, &amp;quot;printenv&amp;quot;]&lt;/code>&lt;/p>
+&lt;h2 id="handing-over-execution-flow-from-entrypoint-to-cmd">Handing over execution flow from &lt;code>ENTRYPOINT&lt;/code> to &lt;code>CMD&lt;/code>&lt;/h2>
+&lt;p>Consider the following Python Flask app:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> python:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># RUN &amp;gt;&amp;gt;&amp;gt; install Python packages &amp;amp; configs ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># COPY &amp;gt;&amp;gt;&amp;gt; add files and executables&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;uvicorn&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;main:app&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;--host&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;0.0.0.0&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The uvicorn command will be executed when the container runs, and the &lt;code>CMD&lt;/code> instruction will provide the necessary arguments for the uvicorn server.&lt;/p>
+&lt;p>Usually, we need a way to include runtime configurations that our Flask app expects to be available in the run environment prior to executing the main application in the entry-point (e.g. &lt;code>uvicorn&lt;/code>). These configurations could be starting a service, exporting environment variables, running a database migration script, or simply editing certain configuration files.&lt;/p>
+&lt;p>This type of commands (runtime commands) cannot be included in &lt;code>RUN&lt;/code> stages, and it is an anti-pattern and honestly quite ugly to cram a lot of shell commands into the &lt;code>ENTRYPOINT&lt;/code> and/or &lt;code>CMD&lt;/code> sections.&lt;/p>
+&lt;h3 id="enter-docker-enterypointsh">Enter &amp;ldquo;docker-enterypoint.sh&amp;rdquo;&lt;/h3>
+&lt;p>When developing a Dockerfile, it is a common pattern to wrap various initialization commands within a shell script, conventionally named &amp;lsquo;docker-entrypoint.sh&amp;rsquo; or &amp;rsquo;entrypoint.sh&amp;rsquo; and execute it using an &lt;code>ENTRYPOINT&lt;/code> instruction prior to running the main app. The purpose of this technique is to provide a flexible way of configuring the Docker container environment &lt;em>at run time&lt;/em>.&lt;/p>
+&lt;p>Since &lt;code>ENTRYPOINT&lt;/code> instruction provides run-time execution, we need to find a way to return the execution flow back the Dockerfile&amp;rsquo;s &lt;code>CMD&lt;/code> instruction to run the main application command.&lt;/p>
+&lt;p>To do so, simply add an &lt;code>exec &amp;quot;@$&amp;quot;&lt;/code> statement at the very end of the shell script that is being executed by the &lt;code>ENTRYPOINT&lt;/code> (i.e. &amp;lsquo;docker-entrypoint.sh&amp;rsquo;) file.&lt;/p>
+&lt;p>After adding all configuration scripts to &amp;lsquo;docker-entrypoint.sh,&amp;rsquo; we will modify the Dockerfile as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-dockerfile" data-lang="dockerfile">&lt;span class="line">&lt;span class="cl">&lt;span class="k">FROM&lt;/span>&lt;span class="s"> python:latest&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># RUN &amp;gt;&amp;gt;&amp;gt; install Python packages &amp;amp; configs ...&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># COPY &amp;gt;&amp;gt; add our app&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># ....&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># Copy the init script file to a directory in the PATH&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="c"># You might need to `chmod +x` it too&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">COPY&lt;/span> docker-entrypoint.sh /usr/local/bin &lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">ENTRYPOINT&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;docker-entrypoint.sh&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="err">&lt;/span>&lt;span class="k">CMD&lt;/span> &lt;span class="p">[&lt;/span>&lt;span class="s2">&amp;#34;uvicorn&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;main:app&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;--host&amp;#34;&lt;/span>&lt;span class="p">,&lt;/span> &lt;span class="s2">&amp;#34;0.0.0.0&amp;#34;&lt;/span>&lt;span class="p">]&lt;/span>&lt;span class="err">
+&lt;/span>&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>To visualize the process:&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1.png"
+width="1155"
+height="437"
+srcset="https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1_hu22bb2e668f1b020c51f48902814d7093_127716_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/docker-cmd-and-entrypoint-differences/visual1_hu22bb2e668f1b020c51f48902814d7093_127716_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="&amp;ldquo;Dockerfile example&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="264"
+data-flex-basis="634px"
+>&lt;/p>
+&lt;p>When we run the container, Docker will execute the &lt;code>ENTRYPOINT&lt;/code>, which contains the &amp;ldquo;docker-entrypoint.sh&amp;rdquo; script. Then, the &lt;code>exec &amp;quot;$@&amp;quot;&lt;/code> command in the &amp;ldquo;docker-entrypoint.sh&amp;rdquo; script will, in a sense, return control to the &lt;code>CMD&lt;/code>. To clarify, the exec part won&amp;rsquo;t transfer execution flow; it just expands the arguments specified in the &lt;code>CMD&lt;/code> instruction in a new process.&lt;/p>
+&lt;p>Let&amp;rsquo;s break down what &lt;code>exec &amp;quot;@$&amp;quot;&lt;/code> does:&lt;/p>
+&lt;ul>
+&lt;li>&lt;code>exec&lt;/code> is a Linux command used to replace the current process with a new process. In this case, it ensures that &lt;code>&amp;quot;$@&amp;quot;&lt;/code> becomes the main process running in the container.&lt;/li>
+&lt;li>&lt;code>&amp;quot;$@&amp;quot;&lt;/code> expands to all the command-line arguments passed to the container when it starts (e.g. expanding the content of the &lt;code>CMD&lt;/code> instruction). It preserves the exact arguments that were passed during container runtime. Also, you still can override the &lt;code>CMD&lt;/code> by specifying args on the &lt;code>docker run&lt;/code> command. Finally, note that you cannot place any commands in the &amp;lsquo;docker-entrypoint.sh&amp;rsquo; file after the exec &amp;ldquo;$@&amp;rdquo; line.&lt;/li>
+&lt;/ul></description></item><item><title>Importing functions in shell scripting</title><link>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</link><pubDate>Thu, 22 Jun 2023 08:34:22 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</guid><description>&lt;p>In this post, I will show you how to &lt;em>source&lt;/em> (load) a Bash function from a local or remote source (e.g. a file in Github) into the current shell.&lt;/p>
+&lt;p>In shell scripting, using the &lt;code>source&lt;/code> command (also known as the dot &amp;ldquo;&lt;code>.&lt;/code>&amp;rdquo; command) allows to read and execute commands from a script file, and load its content into your current shell. This makes all variables, functions, and aliases defined in that script file become available in the current shell session.&lt;/p>
+&lt;h2 id="load-from-local-file">Load from local file&lt;/h2>
+&lt;p>Similar to importing libraries in programming languages, you can organize your freqnetly used code in different files in your project directory and then load them as you need. See this example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"># Project directory tree
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── lib/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── var/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── stuff.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">└── main_script.sh
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you want to import a function from &lt;code>root/lib/common.sh&lt;/code> to &lt;code>main_script.sh&lt;/code>, you only need to source that file:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="c1"># *** main_script.sh ***&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">source&lt;/span> lib/common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># code&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="load-from-remote-file">Load from remote file&lt;/h2>
+&lt;p>To load script content into your current shell without downloading the remote file, you can &lt;code>curl&lt;/code> the content of the script and redirect it to a &lt;code>source&lt;/code> command as the following (don&amp;rsquo;t forget the &lt;code>-s&lt;/code> flag to silence curl&amp;rsquo;s download info):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can use a dot `.` instead of `source` as well&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>curl -s https://raw.githubusercontent.com/shakir85/utils/main/print_hello&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Remote file content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>print_hello&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;This is the boring hello world message&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>After that, you can invoke the &lt;code>print_hello&lt;/code> function from your current shell:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ print_hello
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">This is the boring hello world message
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This technique allows us to set environment variables, import functions, or modify the current shell&amp;rsquo;s behavior using the contents of a remote script. This is a cool trick when you do not want to persist the data of the remote script on the host or want to load functions or variables to the current working shell on the fly. The downside, though, is that if the remote content vanishes, your script could bust!&lt;/p></description></item><item><title>Control the default gateway In a dual NIC host</title><link>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</link><pubDate>Sat, 13 May 2023 21:34:49 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</guid><description>&lt;p>Having multiple network interfaces on one machine can be pretty handy. It gives you network backup and helps you bounce back if the network gets a bit erratic. So, in this post, I&amp;rsquo;ll walk you through setting up a &amp;lsquo;default gateway&amp;rsquo; on one interface to handle outbound traffic (internet), while keeping the second one reserved just for LAN networking. Also, I&amp;rsquo;ll share some quirky bits I had to figure out along the way&lt;/p>
+&lt;h2 id="setting-the-stage">Setting the stage&lt;/h2>
+&lt;p>I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one is an Ethernet port, and the other is a Wi-Fi device.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651.jpeg"
+width="256"
+height="281"
+srcset="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_480x0_resize_q75_box.jpeg 480w, https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_1024x0_resize_q75_box.jpeg 1024w"
+loading="lazy"
+alt="&amp;ldquo;ThinkCenter M710q Mini PC&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="91"
+data-flex-basis="218px"
+>&lt;/p>
+&lt;p>I also have access to two totally different networks. So, this arrangement allows the host to connect to two different, publicly routable IP addresses via two different gateways. My plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic. To make this happen, we just need to make sure the host always selects the wifi-interface&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;h2 id="gateway-and-interfaces-configuration">Gateway and interfaces configuration&lt;/h2>
+&lt;p>First, make sure that each interface is connected to its corresponding network and has been assigned a DHCP IP from its respective gateway.&lt;/p>
+&lt;h3 id="1-identify-the-interfaces">1. Identify the interfaces&lt;/h3>
+&lt;p>Open a terminal window and run &lt;code>ip address show&lt;/code> or &lt;code>ip a&lt;/code> for short:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip addr
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1: lo: &amp;lt;LOOPBACK,UP,LOWER_UP&amp;gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 127.0.0.1/8 scope host lo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 ::1/128 scope host
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2: enp0s31f6: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 6q:4b:40:29:2x:e1 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 10.10.50.36/24 brd 10.10.50.255 scope global dynamic noprefixroute enp0s31f6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">3: wlp2s0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc noqueue state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 1a:3b:70:31:51:63 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.20.13.25/16 brd 172.20.255.255 scope global dynamic noprefixroute wlp2s0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft 70380sec preferred_lft 70380sec
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP:&lt;/p>
+&lt;ol>
+&lt;li>Ethernet interface: &lt;code>enp0s31f6&lt;/code>&lt;/li>
+&lt;li>Wifi interface: &lt;code>wlp2s0&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;h3 id="2-identify-the-default-gateway-for-each-interface">2. Identify the default gateway for each interface&lt;/h3>
+&lt;p>We need to know each gateway&amp;rsquo;s IP address to set up the default gateway on the host. We can find that using the &lt;code>ip route&lt;/code> command&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 10.10.50.10 dev enp0s31f6 proto dhcp metric 100
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 172.20.1.1 dev wlp2s0 proto dhcp metric 600
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>From the output above, each interface has the following information&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Interface&lt;/th>
+&lt;th>Gateway&lt;/th>
+&lt;th>Assiged DHCP IP&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>enp0s31f6&lt;/td>
+&lt;td>10.10.50.10&lt;/td>
+&lt;td>10.10.50.36&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wlp2s0&lt;/td>
+&lt;td>172.20.1.1&lt;/td>
+&lt;td>172.20.13.25&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="3-reset-the-default-gateway">3. Reset the default gateway&lt;/h3>
+&lt;p>The operating system currently uses &lt;code>10.10.50.10&lt;/code> as the default gateway. To switch the default gateway to &lt;code>172.20.1.1&lt;/code>, we need to delete the default gateway and then set the second one as the default gateway.&lt;/p>
+&lt;p>Since each gateway represents a publicly routable IP address, let&amp;rsquo;s take note of the current public IP address on the host before updating the gateways:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-1-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Now let&amp;rsquo;s delete the current default gateway &lt;code>10.10.50.10&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route del default
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Set the default gateway to the interface we want (wifi interface):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route add default via 172.20.1.1 dev wlp2s0
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Check the public IP address again (it should return the second network&amp;rsquo;s public IP address):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-2-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="verify-gateway-change-using-tcpdump">Verify gateway change using &lt;code>tcpdump&lt;/code>&lt;/h3>
+&lt;p>You can use &lt;code>tcpdump&lt;/code> to verify that the public traffic has been re-routed to the second gateway (wifi NIC).&lt;/p>
+&lt;p>&lt;code>tcpdump&lt;/code> is a command line tool used to capture network traffic in real-time. It is a widely-used tool for troubleshooting networks and analyzing network activity.&lt;/p>
+&lt;p>In our case, &lt;code>tcpdump&lt;/code> can capture packets that are sent and received through the wifi NIC on the secondary gateway. This allows us to gather detailed information about each packet, including the source and destination addresses. Consequently, we can determine whether the host utilizes the wifi-NIC&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;p>Run &lt;code>tcpdump -D&lt;/code> as a root user to list active interfaces:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host:~# tcpdump -D
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1.enp0s31f6 [Up, Running, Connected]
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2.wlp2s0 [Up, Running, Wireless, Associated]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Run &lt;code>tcpdump -i wlp2s0 -n -nn&lt;/code> and inspect the output, note that we are using the &lt;code>-i&lt;/code> flag to target the wifi interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[1] 11:54:37.300783 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[2] 11:54:37.300785 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[3] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[4] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[5] 11:54:37.529574 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[6] 11:54:37.881405 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[7] 11:54:42.530855 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[8] 11:54:42.737942 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;blockquote>
+&lt;p>Note: the &lt;code>&amp;lt;Network-IP&amp;gt;&lt;/code> is the redacted wifi-NIC&amp;rsquo;s public IP address.&lt;/p>
+&lt;/blockquote>
+&lt;p>From the output, we can identify the following:&lt;/p>
+&lt;ul>
+&lt;li>Lines 1 to 4 show that the interface communicates with the default gateway we configured previously.&lt;/li>
+&lt;li>Lines 5 to 8 show that the interface&amp;rsquo;s local IP and a remote destination are talking to each other.&lt;/li>
+&lt;/ul>
+&lt;p>Now let&amp;rsquo;s do the same thing with the ethernet interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306031 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1088064413:1088064609, ack 4151802530, win 501, options [nop,nop,TS val 703782894 ecr 4187823825], length 196
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306385 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 196, win 18695, options [nop,nop,TS val 4187823851 ecr 703782894], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395515 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 196:568, ack 1, win 501, options [nop,nop,TS val 703782984 ecr 4187823851], length 372
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395740 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 568, win 18695, options [nop,nop,TS val 4187823940 ecr 703782984], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499285 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 568:916, ack 1, win 501, options [nop,nop,TS val 703783088 ecr 4187823940], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499721 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 916, win 18695, options [nop,nop,TS val 4187824044 ecr 703783088], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603219 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 916:1264, ack 1, win 501, options [nop,nop,TS val 703783192 ecr 4187824044], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603720 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 1264, win 18695, options [nop,nop,TS val 4187824148 ecr 703783192], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.707004 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1264:1612, ack 1, win 501, options [nop,nop,TS val 703783295 ecr 4187824148], length 348
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output above may seem verbose due to an ongoing TCP communication, with tcpdump displaying all the steps involved in the TCP connection process.&lt;/p>
+&lt;p>The interface&amp;rsquo;s IP: &lt;code>10.10.50.36&lt;/code> is engaged in communication with a local destination on the same subnet: &lt;code>10.10.50.209&lt;/code>, and vice versa, over port 22. (This is an active SSH tunnel from my laptop to the device.) The &lt;code>tcpdump&lt;/code> output is not showing any active WAN communication on this interface.&lt;/p>
+&lt;p>Mission accomplished! Now all WAN traffic is routed through gateway &lt;code>172.20.1.1&lt;/code>, and the ethernet interface that&amp;rsquo;s connected to gateway &lt;code>10.10.50.10&lt;/code> is only available for LAN connections.&lt;/p>
+&lt;h2 id="some-gotchas">Some gotchas&lt;/h2>
+&lt;p>During &lt;em>boot-time network configuration&lt;/em>, a race condition is likely to occur regarding which interface the operating system will utilize to set the default gateway.&lt;/p>
+&lt;p>Boot time network configuration is all about getting a host&amp;rsquo;s network interfaces ready to communicate when the OS is firing up. Basically, it&amp;rsquo;s setting up things like IP address, the network essentials, including the gateway address, so your device can link up with the network and chat with other devices. The operating system figures out the default gateway based on the first NIC that obtains an IP address and gateway info from its own gateway.&lt;/p>
+&lt;p>In my experience, the OS always seems to prefer the Ethernet interface when it&amp;rsquo;s setting up the default gateway. I think this is due to the fact that Ethernet uses dedicated physical cables for communication, while the wifi interface relies on wireless signals, which can be affected by interference and signal strength. This can make wifi take a couple of seconds to catch up.&lt;/p>
+&lt;p>Regardless, there are two solutions to remedy such a situation:&lt;/p>
+&lt;h3 id="1-use-etcrclocal-or-systemdrc-localservice">1. Use &lt;code>/etc/rc.local&lt;/code> or &lt;code>systemd/rc-local.service&lt;/code>&lt;/h3>
+&lt;p>Basically, add the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands explained above to the &lt;code>/etc/rc.local&lt;/code>. The &lt;code>/etc/rc.local&lt;/code> is a script file that is executed by the Linux init system during the boot process. The commands or scripts in the file are executed with root privileges, so it is important to use caution when modifying the file.&lt;/p>
+&lt;p>Note that the &lt;code>/etc/rc.local&lt;/code> file is deprecated in some Linux distributions, such as Ubuntu and Debian, in favor of &lt;code>systemd&lt;/code>. Systemd uses its own mechanism for executing scripts and services at boot time, and the equivalent of the &lt;code>/etc/rc.local&lt;/code> file in &lt;code>systemd&lt;/code> is the &lt;code>/etc/systemd/system/rc-local.service&lt;/code> file.&lt;/p>
+&lt;h3 id="2-use-the-good-ol-cron">2. Use the good ol&amp;rsquo; cron&lt;/h3>
+&lt;p>Add a CRON schedule to run the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands. This approach might introduce some network interruption when CRON is triggered. So wrapping these commands in a shell script with some &lt;code>if&lt;/code>-&lt;code>else&lt;/code> logic would be a good idea to check if the gateway has changed during boot time before updating it.&lt;/p>
+&lt;p>Example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;172.20.1.1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">CURRENT_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="k">$(&lt;/span>curl ifconfig.me&lt;span class="k">)&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;99.99.99.99&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">INTERFACE_ID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;wlp2s0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="o">[&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$CURRENT_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> !&lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> &lt;span class="o">]&lt;/span> &lt;span class="p">;&lt;/span> &lt;span class="k">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route del default
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route add default via &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> dev &lt;span class="nv">$INTERFACE_ID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">fi&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="signing-off-for-now">Signing off for now&lt;/h2>
+&lt;p>And that&amp;rsquo;s a wrap for now! Until the next post, keep on exploring, learning, and enjoying Linux networking. Catch you on the flip side! 🚀👋&lt;/p></description></item><item><title>Docker containers process</title><link>https://demo.stack.jimmycai.com/p/docker-containers-process/</link><pubDate>Sat, 22 Apr 2023 11:17:28 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/docker-containers-process/</guid><description>&lt;p>A Docker container is a process, isolated from the host and other containers, running on the system using various Linux kernel features, such as namespaces and cgroups. And this is the main differentiator between VMs and containers.&lt;/p>
+&lt;p>When you start a Docker container, Docker creates a new process in the host system&amp;rsquo;s process tree. Then it will apply the container&amp;rsquo;s configuration such as its file system, network settings and so on to this process.&lt;/p>
+&lt;p>This makes the host OS consider a Docker container as just another process running on the system. Since the container is running as a process, we can actually use standard process monitoring tools, such as &lt;code>ps&lt;/code> and &lt;code>top&lt;/code>, to view and manage Docker.&lt;/p>
+&lt;p>In this blog post, we will examine how to find and access a container&amp;rsquo;s process ID (PID) and root filesystem directly from the host machine.&lt;/p>
+&lt;h2 id="getting-started">Getting Started&amp;hellip;&lt;/h2>
+&lt;p>Let&amp;rsquo;s spin up a container and tinker with it&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker run -d --name nginx nginx:latest
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="access-container-pid">Access container PID&lt;/h2>
+&lt;p>Docker stores detailed information about the container, including its image, configuration, volume, process ID, and network, in a low-level JSON object. You can use the docker inspect command, pipe the output to jq to parse the JSON object as you wish. Alternatively, you can query a scalar element by its name using Go language template syntax, as follows:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># SYNTAX: docker inspect -f &amp;#39;{{.State.Pid}}&amp;#39; &amp;lt;CONTAINER_ID|CONTAINER_NAME&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="check-the-proc-directory">Check the &lt;code>/proc&lt;/code> directory&lt;/h2>
+&lt;p>In Linux, the &lt;code>/proc&lt;/code> directory is a virtual file system that provides a view of the system&amp;rsquo;s running processes. It contains files and directories that are dynamically generated by the kernel to provide information about the processes, hardware, and other system information.&lt;/p>
+&lt;p>Each process running on the system has its own subdirectory under &lt;code>/proc&lt;/code>, identified by its process ID (PID). For example, if you have a process id = 12345, you&amp;rsquo;d find its subdirectory in this path: &lt;code>/proc/12345&lt;/code>. Inside the PID subdirectory (e.g. &lt;code>/proc/12345&lt;/code> in our case), you can find various files that provide information about the process, such as its memory usage, file descriptors, and more.&lt;/p>
+&lt;p>So, since the Nginx container that we spun up previously is just a process, we should see a directory named after its PID in &lt;code>/proc&lt;/code>.&lt;/p>
+&lt;p>Let&amp;rsquo;s re-run the above command and assign the output to a variable, amd &lt;code>ls&lt;/code> its &lt;code>proc&lt;/code> directory:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="nv">PID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="k">$(&lt;/span>docker inspect -f &lt;span class="s1">&amp;#39;{{.State.Pid}}&amp;#39;&lt;/span> nginx&lt;span class="k">)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output contains everything related to the container process. Explore the &lt;code>cgroup&lt;/code> or &lt;code>environ&lt;/code> files. Feel free to inspect the other files as well.&lt;/p>
+&lt;p>Now let&amp;rsquo;s inspect the container&amp;rsquo;s &amp;ldquo;root&amp;rdquo; filesystem &lt;code>/proc/$PID/root&lt;/code>&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ls /proc/&lt;span class="nv">$PID&lt;/span>/root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If we &lt;code>exec&lt;/code> into the container, we can see the same content from inside the container&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">docker &lt;span class="nb">exec&lt;/span> -it nginx sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root@ed08325bda2d:/# ls
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">bin dev docker-entrypoint.sh home lib64 mnt proc run srv tmp var
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">boot docker-entrypoint.d etc lib media opt root sbin sys usr
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="manipulate-the-container-process">Manipulate the container process&lt;/h2>
+&lt;p>Like any process on the host, you can control it, but with some limitations. You can see below how the container was terminated using the &lt;code>kill&lt;/code> command without interacting with the Docker daemon.&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">ps aux &lt;span class="p">|&lt;/span> grep &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">8929&lt;/span> 0.0 0.0 &lt;span class="m">8936&lt;/span> &lt;span class="m">5872&lt;/span> ? Ss 11:30 0:00 nginx: master process nginx -g daemon off&lt;span class="p">;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root &lt;span class="m">9053&lt;/span> 0.0 0.0 &lt;span class="m">17864&lt;/span> &lt;span class="m">2408&lt;/span> pts/4 S+ 11:31 0:00 grep --color&lt;span class="o">=&lt;/span>auto &lt;span class="m">8929&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">522e39dfc08e nginx &lt;span class="s2">&amp;#34;/docker-entrypoint.…&amp;#34;&lt;/span> &lt;span class="m">10&lt;/span> minutes ago Up &lt;span class="m">7&lt;/span> minutes 80/tcp nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">kill&lt;/span> -9 &lt;span class="nv">$PID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">docker ps
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="conclusion">Conclusion&lt;/h2>
+&lt;p>We explored how to find a container&amp;rsquo;s process ID and how to access its root filesystem from the host. Unlike virtual machines, containers are isolated processes running in the host. This approach allows Docker to provide lightweight, efficient containerization that can be easily managed and monitored using standard Linux tools. It also allows Docker to run on a wide variety of Linux systems, without requiring any special kernel modifications or configurations.&lt;/p></description></item></channel></rss>

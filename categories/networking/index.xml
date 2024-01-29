@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>networking on Shakir</title><link>https://demo.stack.jimmycai.com/categories/networking/</link><description>Recent content in networking on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Mon, 24 Jul 2023 19:56:52 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/networking/index.xml" rel="self" type="application/rss+xml"/><item><title>Firewalls: stateful vs. stateless</title><link>https://demo.stack.jimmycai.com/p/firewalls-stateful-vs.-stateless/</link><pubDate>Mon, 24 Jul 2023 19:56:52 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/firewalls-stateful-vs.-stateless/</guid><description>&lt;p>Whether it&amp;rsquo;s an on-prem firewall or in the cloud, it&amp;rsquo;s important to understand the fundamental distinctions in firewall types. In this post, I will summerize the differences between stateful and stateless filtering in simple and basic terms.&lt;/p>
+&lt;h2 id="stateful-filtering">Stateful filtering&lt;/h2>
+&lt;p>Stateful filtering, is a firewall technique that tracks the state of network connections and makes decisions (such as allow/deny) based on the context of those connections. When a packet passes through a stateful firewall, the firewall keeps track of the state of the connection by creating an entry in a state table to monitor the connection&amp;rsquo;s status.&lt;/p>
+&lt;p>The state table contains information such as:&lt;/p>
+&lt;ul>
+&lt;li>Source&amp;rsquo;s IP address and port&lt;/li>
+&lt;li>Destination&amp;rsquo;s IP address and port&lt;/li>
+&lt;li>Connection status (e.g. established, new, related, or invalid).&lt;/li>
+&lt;/ul>
+&lt;p>By maintaining this state information, the firewall can &lt;strong>allow inbound traffic&lt;/strong> that is part of an outbound connection initiated from within the network. This &amp;ldquo;allow rule&amp;rdquo; does not have to be explicitly configured in the firewall to permit traffic from the destination back to the source. That&amp;rsquo;s whay they&amp;rsquo;re called &amp;ldquo;context-aware&amp;rdquo;, because this type is designed to understand the context of the conntection, where it&amp;rsquo;s coming from, where it&amp;rsquo;s going to, and who generated the connection.&lt;/p>
+&lt;p>Imagine your application sending a request, and when the destination sends the response back, the firewall just goes, &amp;lsquo;Oh, I&amp;rsquo;ve got this! It&amp;rsquo;s coming from a destination that a client from my network initiated the connection with. No need to have the destination IP in the allow-list; we&amp;rsquo;re all good to go!&amp;rsquo;.&lt;/p>
+&lt;p>The firewall will continue blocking traffic that does not &lt;strong>correspond to an existing connection&lt;/strong> or violates the state table rules. Security Groups on major cloud providers typically operate in a stateful manner.&lt;/p>
+&lt;h3 id="advantages-of-stateful-filtering">Advantages of Stateful Filtering&lt;/h3>
+&lt;ul>
+&lt;li>Simplicity in implementation: No need to add an allow rule for the destination address if the connection originated from a client within the network.&lt;/li>
+&lt;li>Improved security: Only allows traffic from established connections within our network.&lt;/li>
+&lt;/ul>
+&lt;h2 id="stateless-filtering">Stateless Filtering&lt;/h2>
+&lt;p>Stateless filtering, is a firewall technique that examines individual packets without considering the context or state of the connection to which they belong. Each packet is analyzed independently based on predefined filtering rules. If a client within the network sends a request to a remote destination, the destination address must be on the firewall&amp;rsquo;s allow list, otherwise the client won&amp;rsquo;t receive a response.&lt;/p>
+&lt;p>Think of it like the customs kiosks at an airport in some country. They check arrivals and departures for travelers separately. The passengers&amp;rsquo; origin does not generally impact their work rules. All they know is whether a passenger is arriving or departing and whether they are permitted to enter or leave the country based on predefined rules.&lt;/p>
+&lt;p>In stateless filtering, the firewall evaluates each packet&amp;rsquo;s headers, such as source and destination IP, ports, and protocol type. If a packet matches one of the preconfigured rules, it is allowed or denied based on that rule&amp;rsquo;s criteria.&lt;/p>
+&lt;p>Stateless firewalls do not maintain a state table to track connection states, meaning they do not know established connections. As a result, they cannot dynamically allow response traffic for outgoing connections or handle traffic related to established connections.&lt;/p>
+&lt;p>In AWS, Network Access List (NACLs) operate in a stateless manner.&lt;/p>
+&lt;h3 id="advantages-of-stateless-filtering">Advantages of Stateless Filtering&lt;/h3>
+&lt;ul>
+&lt;li>Efficiency. Each packet is evaluated in isolation without the overhead of maintaining a state table.&lt;/li>
+&lt;li>Useful for basic traffic filtering and access control based on packet headers.&lt;/li>
+&lt;/ul>
+&lt;h2 id="scope-of-implementation">Scope of implementation&lt;/h2>
+&lt;p>The fundamental concepts of stateful and stateless firewalls are consistent across firewall appliance manufacturers as well as cloud providers. However, the implementation of stateless and stateful firewall functionality (i.e. how they do it) can vary.&lt;/p>
+&lt;p>For example, in AWS, stateful firewall functionality is implemented using Security Groups, which operate at the instance level. And stateless firewall functionality can be achieved through Network ACLs (Access Control Lists - NACLs), which operate at the subnet level.&lt;/p>
+&lt;h2 id="comparison">Comparison&lt;/h2>
+&lt;ul>
+&lt;li>Stateful filtering is more sophisticated and provides better security by considering the state of connections. It can dynamically allow responses to outgoing traffic and handle related traffic.&lt;/li>
+&lt;li>Simplicity in usage: they&amp;rsquo;re good when simpler filtering rules based on static rules are sufficient.&lt;/li>
+&lt;/ul>
+&lt;h2 id="finally">Finally&lt;/h2>
+&lt;p>In practice, firewalls often utilize both stateful and stateless filtering at various levels, such as subnet, or gateway, to provide complete security. Stateful filtering is commonly used for connection tracking, while stateless filtering allows for quick packet evaluation.&lt;/p></description></item><item><title>Control the default gateway In a dual NIC host</title><link>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</link><pubDate>Sat, 13 May 2023 21:34:49 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/</guid><description>&lt;p>Having multiple network interfaces on one machine can be pretty handy. It gives you network backup and helps you bounce back if the network gets a bit erratic. So, in this post, I&amp;rsquo;ll walk you through setting up a &amp;lsquo;default gateway&amp;rsquo; on one interface to handle outbound traffic (internet), while keeping the second one reserved just for LAN networking. Also, I&amp;rsquo;ll share some quirky bits I had to figure out along the way&lt;/p>
+&lt;h2 id="setting-the-stage">Setting the stage&lt;/h2>
+&lt;p>I have a mini PC (ThinkCentre M710q) running Debian 11. This device is equipped with two network interfaces: one is an Ethernet port, and the other is a Wi-Fi device.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651.jpeg"
+width="256"
+height="281"
+srcset="https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_480x0_resize_q75_box.jpeg 480w, https://demo.stack.jimmycai.com/p/control-the-default-gateway-in-a-dual-nic-host/25112651_hue96fc2f0dfeada5346881e6586233a22_17609_1024x0_resize_q75_box.jpeg 1024w"
+loading="lazy"
+alt="&amp;ldquo;ThinkCenter M710q Mini PC&amp;rdquo;"
+class="gallery-image"
+data-flex-grow="91"
+data-flex-basis="218px"
+>&lt;/p>
+&lt;p>I also have access to two totally different networks. So, this arrangement allows the host to connect to two different, publicly routable IP addresses via two different gateways. My plan is to connect use ethernet port for local networking, and use the wifi interface for internet traffic. To make this happen, we just need to make sure the host always selects the wifi-interface&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;h2 id="gateway-and-interfaces-configuration">Gateway and interfaces configuration&lt;/h2>
+&lt;p>First, make sure that each interface is connected to its corresponding network and has been assigned a DHCP IP from its respective gateway.&lt;/p>
+&lt;h3 id="1-identify-the-interfaces">1. Identify the interfaces&lt;/h3>
+&lt;p>Open a terminal window and run &lt;code>ip address show&lt;/code> or &lt;code>ip a&lt;/code> for short:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip addr
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1: lo: &amp;lt;LOOPBACK,UP,LOWER_UP&amp;gt; mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 127.0.0.1/8 scope host lo
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet6 ::1/128 scope host
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft forever preferred_lft forever
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2: enp0s31f6: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 6q:4b:40:29:2x:e1 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 10.10.50.36/24 brd 10.10.50.255 scope global dynamic noprefixroute enp0s31f6
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">3: wlp2s0: &amp;lt;BROADCAST,MULTICAST,UP,LOWER_UP&amp;gt; mtu 1500 qdisc noqueue state UP group default qlen 1000
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> link/ether 1a:3b:70:31:51:63 brd ff:ff:ff:ff:ff:ff
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> inet 172.20.13.25/16 brd 172.20.255.255 scope global dynamic noprefixroute wlp2s0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> valid_lft 70380sec preferred_lft 70380sec
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>In the output above I have two active interfaces; both are up, and each has been assigned a DHCP IP:&lt;/p>
+&lt;ol>
+&lt;li>Ethernet interface: &lt;code>enp0s31f6&lt;/code>&lt;/li>
+&lt;li>Wifi interface: &lt;code>wlp2s0&lt;/code>&lt;/li>
+&lt;/ol>
+&lt;h3 id="2-identify-the-default-gateway-for-each-interface">2. Identify the default gateway for each interface&lt;/h3>
+&lt;p>We need to know each gateway&amp;rsquo;s IP address to set up the default gateway on the host. We can find that using the &lt;code>ip route&lt;/code> command&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 10.10.50.10 dev enp0s31f6 proto dhcp metric 100
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">default via 172.20.1.1 dev wlp2s0 proto dhcp metric 600
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>From the output above, each interface has the following information&lt;/p>
+&lt;table>
+&lt;thead>
+&lt;tr>
+&lt;th>Interface&lt;/th>
+&lt;th>Gateway&lt;/th>
+&lt;th>Assiged DHCP IP&lt;/th>
+&lt;/tr>
+&lt;/thead>
+&lt;tbody>
+&lt;tr>
+&lt;td>enp0s31f6&lt;/td>
+&lt;td>10.10.50.10&lt;/td>
+&lt;td>10.10.50.36&lt;/td>
+&lt;/tr>
+&lt;tr>
+&lt;td>wlp2s0&lt;/td>
+&lt;td>172.20.1.1&lt;/td>
+&lt;td>172.20.13.25&lt;/td>
+&lt;/tr>
+&lt;/tbody>
+&lt;/table>
+&lt;h3 id="3-reset-the-default-gateway">3. Reset the default gateway&lt;/h3>
+&lt;p>The operating system currently uses &lt;code>10.10.50.10&lt;/code> as the default gateway. To switch the default gateway to &lt;code>172.20.1.1&lt;/code>, we need to delete the default gateway and then set the second one as the default gateway.&lt;/p>
+&lt;p>Since each gateway represents a publicly routable IP address, let&amp;rsquo;s take note of the current public IP address on the host before updating the gateways:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-1-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Now let&amp;rsquo;s delete the current default gateway &lt;code>10.10.50.10&lt;/code>:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route del default
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Set the default gateway to the interface we want (wifi interface):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ ip route add default via 172.20.1.1 dev wlp2s0
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Check the public IP address again (it should return the second network&amp;rsquo;s public IP address):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">user@host:~$ curl ifconfig.me
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&amp;lt;Output=Network-2-Public-IPv4&amp;gt;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h3 id="verify-gateway-change-using-tcpdump">Verify gateway change using &lt;code>tcpdump&lt;/code>&lt;/h3>
+&lt;p>You can use &lt;code>tcpdump&lt;/code> to verify that the public traffic has been re-routed to the second gateway (wifi NIC).&lt;/p>
+&lt;p>&lt;code>tcpdump&lt;/code> is a command line tool used to capture network traffic in real-time. It is a widely-used tool for troubleshooting networks and analyzing network activity.&lt;/p>
+&lt;p>In our case, &lt;code>tcpdump&lt;/code> can capture packets that are sent and received through the wifi NIC on the secondary gateway. This allows us to gather detailed information about each packet, including the source and destination addresses. Consequently, we can determine whether the host utilizes the wifi-NIC&amp;rsquo;s gateway as the default gateway.&lt;/p>
+&lt;p>Run &lt;code>tcpdump -D&lt;/code> as a root user to list active interfaces:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host:~# tcpdump -D
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">1.enp0s31f6 [Up, Running, Connected]
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">2.wlp2s0 [Up, Running, Wireless, Associated]
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Run &lt;code>tcpdump -i wlp2s0 -n -nn&lt;/code> and inspect the output, note that we are using the &lt;code>-i&lt;/code> flag to target the wifi interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;span class="lnt">7
+&lt;/span>&lt;span class="lnt">8
+&lt;/span>&lt;span class="lnt">9
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[1] 11:54:37.300783 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[2] 11:54:37.300785 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[3] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[4] 11:54:37.300786 ARP, Reply 172.20.1.1 is-at 00:50:e8:04:5f:73, length 46
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[5] 11:54:37.529574 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[6] 11:54:37.881405 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[7] 11:54:42.530855 IP &amp;lt;Network-IP&amp;gt;.43681 &amp;gt; 146.70.172.2.18748: UDP, length 176
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">[8] 11:54:42.737942 IP 146.70.172.2.18748 &amp;gt; &amp;lt;Network-IP&amp;gt;.43681: UDP, length 384
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;blockquote>
+&lt;p>Note: the &lt;code>&amp;lt;Network-IP&amp;gt;&lt;/code> is the redacted wifi-NIC&amp;rsquo;s public IP address.&lt;/p>
+&lt;/blockquote>
+&lt;p>From the output, we can identify the following:&lt;/p>
+&lt;ul>
+&lt;li>Lines 1 to 4 show that the interface communicates with the default gateway we configured previously.&lt;/li>
+&lt;li>Lines 5 to 8 show that the interface&amp;rsquo;s local IP and a remote destination are talking to each other.&lt;/li>
+&lt;/ul>
+&lt;p>Now let&amp;rsquo;s do the same thing with the ethernet interface:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">root@host# tcpdump -i wlp2s0 -n -nn
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306031 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1088064413:1088064609, ack 4151802530, win 501, options [nop,nop,TS val 703782894 ecr 4187823825], length 196
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.306385 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 196, win 18695, options [nop,nop,TS val 4187823851 ecr 703782894], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395515 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 196:568, ack 1, win 501, options [nop,nop,TS val 703782984 ecr 4187823851], length 372
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.395740 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 568, win 18695, options [nop,nop,TS val 4187823940 ecr 703782984], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499285 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 568:916, ack 1, win 501, options [nop,nop,TS val 703783088 ecr 4187823940], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.499721 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 916, win 18695, options [nop,nop,TS val 4187824044 ecr 703783088], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603219 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 916:1264, ack 1, win 501, options [nop,nop,TS val 703783192 ecr 4187824044], length 348
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.603720 IP 10.10.50.209.40122 &amp;gt; 10.10.50.36.22: Flags [.], ack 1264, win 18695, options [nop,nop,TS val 4187824148 ecr 703783192], length 0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">12:07:30.707004 IP 10.10.50.36.22 &amp;gt; 10.10.50.209.40122: Flags [P.], seq 1264:1612, ack 1, win 501, options [nop,nop,TS val 703783295 ecr 4187824148], length 348
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>The output above may seem verbose due to an ongoing TCP communication, with tcpdump displaying all the steps involved in the TCP connection process.&lt;/p>
+&lt;p>The interface&amp;rsquo;s IP: &lt;code>10.10.50.36&lt;/code> is engaged in communication with a local destination on the same subnet: &lt;code>10.10.50.209&lt;/code>, and vice versa, over port 22. (This is an active SSH tunnel from my laptop to the device.) The &lt;code>tcpdump&lt;/code> output is not showing any active WAN communication on this interface.&lt;/p>
+&lt;p>Mission accomplished! Now all WAN traffic is routed through gateway &lt;code>172.20.1.1&lt;/code>, and the ethernet interface that&amp;rsquo;s connected to gateway &lt;code>10.10.50.10&lt;/code> is only available for LAN connections.&lt;/p>
+&lt;h2 id="some-gotchas">Some gotchas&lt;/h2>
+&lt;p>During &lt;em>boot-time network configuration&lt;/em>, a race condition is likely to occur regarding which interface the operating system will utilize to set the default gateway.&lt;/p>
+&lt;p>Boot time network configuration is all about getting a host&amp;rsquo;s network interfaces ready to communicate when the OS is firing up. Basically, it&amp;rsquo;s setting up things like IP address, the network essentials, including the gateway address, so your device can link up with the network and chat with other devices. The operating system figures out the default gateway based on the first NIC that obtains an IP address and gateway info from its own gateway.&lt;/p>
+&lt;p>In my experience, the OS always seems to prefer the Ethernet interface when it&amp;rsquo;s setting up the default gateway. I think this is due to the fact that Ethernet uses dedicated physical cables for communication, while the wifi interface relies on wireless signals, which can be affected by interference and signal strength. This can make wifi take a couple of seconds to catch up.&lt;/p>
+&lt;p>Regardless, there are two solutions to remedy such a situation:&lt;/p>
+&lt;h3 id="1-use-etcrclocal-or-systemdrc-localservice">1. Use &lt;code>/etc/rc.local&lt;/code> or &lt;code>systemd/rc-local.service&lt;/code>&lt;/h3>
+&lt;p>Basically, add the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands explained above to the &lt;code>/etc/rc.local&lt;/code>. The &lt;code>/etc/rc.local&lt;/code> is a script file that is executed by the Linux init system during the boot process. The commands or scripts in the file are executed with root privileges, so it is important to use caution when modifying the file.&lt;/p>
+&lt;p>Note that the &lt;code>/etc/rc.local&lt;/code> file is deprecated in some Linux distributions, such as Ubuntu and Debian, in favor of &lt;code>systemd&lt;/code>. Systemd uses its own mechanism for executing scripts and services at boot time, and the equivalent of the &lt;code>/etc/rc.local&lt;/code> file in &lt;code>systemd&lt;/code> is the &lt;code>/etc/systemd/system/rc-local.service&lt;/code> file.&lt;/p>
+&lt;h3 id="2-use-the-good-ol-cron">2. Use the good ol&amp;rsquo; cron&lt;/h3>
+&lt;p>Add a CRON schedule to run the &amp;ldquo;delete-gateway&amp;rdquo; -&amp;gt; &amp;ldquo;set-gateway&amp;rdquo; commands. This approach might introduce some network interruption when CRON is triggered. So wrapping these commands in a shell script with some &lt;code>if&lt;/code>-&lt;code>else&lt;/code> logic would be a good idea to check if the gateway has changed during boot time before updating it.&lt;/p>
+&lt;p>Example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-bash" data-lang="bash">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;172.20.1.1&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">CURRENT_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="k">$(&lt;/span>curl ifconfig.me&lt;span class="k">)&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;99.99.99.99&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nv">INTERFACE_ID&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="s2">&amp;#34;wlp2s0&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">if&lt;/span> &lt;span class="o">[&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$CURRENT_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> !&lt;span class="o">=&lt;/span> &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_PUBLIC_IP&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> &lt;span class="o">]&lt;/span> &lt;span class="p">;&lt;/span> &lt;span class="k">then&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route del default
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> ip route add default via &lt;span class="s2">&amp;#34;&lt;/span>&lt;span class="nv">$SECOND_NETWORK_GATEWAY&lt;/span>&lt;span class="s2">&amp;#34;&lt;/span> dev &lt;span class="nv">$INTERFACE_ID&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="k">fi&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="signing-off-for-now">Signing off for now&lt;/h2>
+&lt;p>And that&amp;rsquo;s a wrap for now! Until the next post, keep on exploring, learning, and enjoying Linux networking. Catch you on the flip side! 🚀👋&lt;/p></description></item></channel></rss>

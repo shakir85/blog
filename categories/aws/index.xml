@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>aws on Shakir</title><link>https://demo.stack.jimmycai.com/categories/aws/</link><description>Recent content in aws on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Wed, 04 Oct 2023 21:22:40 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/aws/index.xml" rel="self" type="application/rss+xml"/><item><title>Mounting AWS EBS volumes</title><link>https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/</link><pubDate>Wed, 04 Oct 2023 21:22:40 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/</guid><description>&lt;p>This post is designed for those new to AWS, showing the steps to attach a new EBS volume and mount it in the operating system. The goal of mounting a data volume is to maintain a clear separation between your application data and the operating-system&amp;rsquo;s data.&lt;/p>
+&lt;p>Initializing EBS volumes is important also when working with Auto Scaling Groups (ASG). Auto Scaling Groups use launch templates, which contain information such as the Amazon Machine Image (AMI), SSH keys, and more, to deploy new EC2 instances during scaling events. An AMI captures the state of the root volume and any additional attached EBS volumes, including their mount points. If you attach an EBS volume, mount it to a specific directory like &lt;code>/foo&lt;/code>, and then create an AMI from that EC2 instance, the information about the attached EBS volume and its mount point will be preserved.&lt;/p>
+&lt;h2 id="requrements">Requrements&lt;/h2>
+&lt;ul>
+&lt;li>AWS account (duh!)&lt;/li>
+&lt;li>Adequate IAM permissions for EC2 and EBS (launch, attach/detach volumes).&lt;/li>
+&lt;li>Basic familiarity with Linux storage mechanisms.&lt;/li>
+&lt;/ul>
+&lt;p>Before we start, I&amp;rsquo;d like to mention that all the steps here can be automated using the AWS CLI/SDK, or your preferred Infrastructure as Code (IaC) tool. In this instance, we&amp;rsquo;ll walk through the console setup for clarity.&lt;/p>
+&lt;p>&lt;strong>Disclaimer&lt;/strong>
+This post will focus on provisioning a new volume, including the formatting process. Adding a new partition to a partially used volume is beyond the scope of this blog, and following the steps below will effectively wipe all the content from the specified volume.&lt;/p>
+&lt;h2 id="step-1-create-an-ebs-volume">Step 1: Create an EBS volume&lt;/h2>
+&lt;p>Set your volume settings as you wish, just make sure it&amp;rsquo;s in the same AZ as the target EC2 instance.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/ebs_console.png"
+width="1003"
+height="163"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/ebs_console_hu586866867ef7bb85bb64951273e36b6a_22832_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/ebs_console_hu586866867ef7bb85bb64951273e36b6a_22832_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="EBS Console"
+class="gallery-image"
+data-flex-grow="615"
+data-flex-basis="1476px"
+>&lt;/p>
+&lt;h2 id="step-2-attache-the-ebs-volume-to-your-ec2-instance">Step 2: Attache the EBS volume to your EC2 instance&lt;/h2>
+&lt;p>My running EC2 instance is called &lt;code>webserver&lt;/code> and I will name the volume as &lt;code>/dev/sdb&lt;/code>. This volume name should be reflected in the &lt;code>/dev&lt;/code> directory once the volume is attached successfully.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume.png"
+width="1001"
+height="369"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_hu493b8332ecf777654479efac5cf5a81f_43316_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_hu493b8332ecf777654479efac5cf5a81f_43316_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Select attach"
+class="gallery-image"
+data-flex-grow="271"
+data-flex-basis="651px"
+>&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_2.png"
+width="812"
+height="603"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_2_hu663c1ac1ae1c854b5977df412b30f046_48454_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_2_hu663c1ac1ae1c854b5977df412b30f046_48454_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Attach and choose volume name"
+class="gallery-image"
+data-flex-grow="134"
+data-flex-basis="323px"
+>&lt;/p>
+&lt;p>Once attachment is successful, you should see the new volume in the main console&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_3.png"
+width="1011"
+height="601"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_3_hu0acbd8792bdbac1a130b36384195c484_78046_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/attach_volume_3_hu0acbd8792bdbac1a130b36384195c484_78046_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Check attached volumes"
+class="gallery-image"
+data-flex-grow="168"
+data-flex-basis="403px"
+>&lt;/p>
+&lt;h2 id="step-3-configure-the-new-volume">Step 3: Configure the new volume&lt;/h2>
+&lt;p>When you add a new EBS volume to an EC2 instance in AWS, you generally need to follow similar steps as you would with on-premises servers. What we did above is just attaching a disk to a server, exactly like you would do on a physial server (or a volume to a VM in a type 1 hypervisor).&lt;/p>
+&lt;p>So we need to SSH into the server and do configure the volume.&lt;/p>
+&lt;h3 id="ssh-into-the-ec2-instance">SSH into the EC2 Instance&lt;/h3>
+&lt;p>Make sure you have proper permissions to format, partition, and mount disks.&lt;/p>
+&lt;h3 id="identify-the-new-volume">Identify the New Volume&lt;/h3>
+&lt;p>Run the &lt;code>lsblk&lt;/code> (List Block Devices) command and list all disks on the system and try to identify the newly added volume&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/lsblk.png"
+width="499"
+height="127"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/lsblk_hua2ec3f26f00d09c1db417ec4cc684c55_13914_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/lsblk_hua2ec3f26f00d09c1db417ec4cc684c55_13914_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Showing the new volume"
+class="gallery-image"
+data-flex-grow="392"
+data-flex-basis="942px"
+>&lt;/p>
+&lt;p>The &lt;code>lsblk&lt;/code> command is handy for checking disk information, including where a disk is mounted. If you look at the output above, you&amp;rsquo;ll see that our recently added volume isn&amp;rsquo;t mounted yet. You might also wonder why it&amp;rsquo;s labeled as &lt;code>xvdb&lt;/code> instead of the expected &lt;code>sdb&lt;/code>. This change is due to a new naming system in the Linux kernel. Take a look at the highlighted box in the previous screenshot for more details&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/kernel_name.png"
+width="602"
+height="129"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/kernel_name_hu28587522a050aa5cc12fa307dcd6fc43_16153_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/kernel_name_hu28587522a050aa5cc12fa307dcd6fc43_16153_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Volume naming notice"
+class="gallery-image"
+data-flex-grow="466"
+data-flex-basis="1120px"
+>&lt;/p>
+&lt;h3 id="install-a-partition-table">Install a partition table&lt;/h3>
+&lt;p>Once the disk is identified, we need to install a partition table.&lt;/p>
+&lt;blockquote>
+&lt;p>A partition table is a data structure on a storage device that defines the sections used for organizing data on the disk.&lt;/p>
+&lt;/blockquote>
+&lt;p>Run the &lt;code>fdisk&lt;/code> command and follow the instructions specfied in the code block below&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;span class="lnt">11
+&lt;/span>&lt;span class="lnt">12
+&lt;/span>&lt;span class="lnt">13
+&lt;/span>&lt;span class="lnt">14
+&lt;/span>&lt;span class="lnt">15
+&lt;/span>&lt;span class="lnt">16
+&lt;/span>&lt;span class="lnt">17
+&lt;/span>&lt;span class="lnt">18
+&lt;/span>&lt;span class="lnt">19
+&lt;/span>&lt;span class="lnt">20
+&lt;/span>&lt;span class="lnt">21
+&lt;/span>&lt;span class="lnt">22
+&lt;/span>&lt;span class="lnt">23
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">$ sudo fdisk /dev/sdb
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Welcome to fdisk (util-linux 2.37.4).
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Changes will remain in memory only, until you decide to write them.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Be careful before using the write command.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Device does not contain a recognized partition table.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created a new DOS disklabel with disk identifier 0xf8a58774.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Command (m for help): g
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created a new GPT disklabel (GUID: AC3E4A5C-F60F-5B42-85BB-B019A99EB6D0).
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Command (m for help): n
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Partition number (1-128, default 1):
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">First sector (2048-209715166, default 2048):
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Last sector, +/-sectors or +/-size{K,M,G,T,P} (2048-209715166, default 209715166):
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Created a new partition 1 of type &amp;#39;Linux filesystem&amp;#39; and of size 100 GiB.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Command (m for help): w
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">The partition table has been altered.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Calling ioctl() to re-read partition table.
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">Syncing disks.
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;ol>
+&lt;li>Enter &lt;code>g&lt;/code> and hit enter, this will create a GPT partition table.&lt;/li>
+&lt;li>Enter &lt;code>n&lt;/code> and hit enter, this will create new partitio.&lt;/li>
+&lt;li>Hit Enter, this will instruct &lt;code>fdisk&lt;/code> to use all the free space in the disk to the new partition.&lt;/li>
+&lt;li>Enter &lt;code>w&lt;/code> and hit enter, this will write the new partition to the disk.&lt;/li>
+&lt;/ol>
+&lt;h3 id="check-device-partitions">Check device partitions&lt;/h3>
+&lt;p>The &lt;code>/dev&lt;/code> directory is where device files are located, and devices like hard drives can have sequential names and additional entries representing partitions. For example, if you have a device named /dev/sdb, it might be the entire storage device. The partitions on that device are then represented by appending a number to the device name, such as /dev/sdb1, /dev/sdb2, and so on.&lt;/p>
+&lt;p>So now we have our disk device and it has one partition (from the previous step), we should see the following devices &lt;code>/dev/sdb&lt;/code> and &lt;code>/dev/sdb1&lt;/code> in &lt;code>/dev&lt;/code>&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/dev_dir.png"
+width="846"
+height="347"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/dev_dir_hu716a953821f020c08c21d6be368b7b8f_87259_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/dev_dir_hu716a953821f020c08c21d6be368b7b8f_87259_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Check the /dev directory"
+class="gallery-image"
+data-flex-grow="243"
+data-flex-basis="585px"
+>&lt;/p>
+&lt;h3 id="create-a-file-system">Create a file system&lt;/h3>
+&lt;p>Use the &lt;code>mkfs&lt;/code> tool to create a file system on the new partition.&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/make_filesystem.png"
+width="783"
+height="231"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/make_filesystem_huc8df658e6ddbd645a573ba68068df207_37616_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/make_filesystem_huc8df658e6ddbd645a573ba68068df207_37616_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Make a file system"
+class="gallery-image"
+data-flex-grow="338"
+data-flex-basis="813px"
+>&lt;/p>
+&lt;p>The &lt;code>-t&lt;/code> option allows us to select the type of the file system; in this case, I will use &lt;code>ext4&lt;/code>. The &lt;code>-L&lt;/code> option can be any meaningful name for your volume. We will use that label in the &lt;code>LABEL&lt;/code> option in the next step when we mount the file system, so be sure to use a helpful name.&lt;/p>
+&lt;h3 id="mount-the-new-file-system">Mount the new file system&lt;/h3>
+&lt;p>Create a new directory (or use an existing one), and mount the new file system to it&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ sudo mount &lt;span class="nv">LABEL&lt;/span>&lt;span class="o">=&lt;/span>ebs001 /ebs001
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Check the mount point&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ ls /ebs001
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">lost+found
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Let&amp;rsquo;s add a file to it for testing&lt;/p>
+&lt;p>&lt;img src="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/test_file.png"
+width="520"
+height="91"
+srcset="https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/test_file_hud37cba6e2fad2ae84a226b070595f91b_8965_480x0_resize_box_3.png 480w, https://demo.stack.jimmycai.com/p/mounting-aws-ebs-volumes/test_file_hud37cba6e2fad2ae84a226b070595f91b_8965_1024x0_resize_box_3.png 1024w"
+loading="lazy"
+alt="Alt text"
+class="gallery-image"
+data-flex-grow="571"
+data-flex-basis="1371px"
+>&lt;/p>
+&lt;p>The volume is now ready, allowing the EBS volume to easily be detached from its current EC2 instance and attached to another instance without any data loss. This volume is ideal for storing your application data, such as serving as a mount point for a Docker volume, which will keep the application data separated from the EC2 root volume at all times.&lt;/p></description></item><item><title>To CloudFront or not to CloudFront?</title><link>https://demo.stack.jimmycai.com/p/to-cloudfront-or-not-to-cloudfront/</link><pubDate>Tue, 01 Aug 2023 11:03:48 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/to-cloudfront-or-not-to-cloudfront/</guid><description>&lt;p>Using Amazon CloudFront to serve S3 data can be more cost-effective than serving data directly from S3 in some situations. In this post, I will discuss key points to consider when deciding to use CloudFront for serving S3 content at the edge.&lt;/p>
+&lt;h2 id="data-transfer-costs">Data transfer costs&lt;/h2>
+&lt;p>CloudFront can help reduce data transfer costs by caching and serving content from edge locations closer users. If your content is accessed &lt;em>frequently&lt;/em> by users from different geographic locations, CloudFront can reduce the amount of data transferred over the internet compared to serving content directly from an S3 bucket.&lt;/p>
+&lt;h2 id="latency-and-performance">Latency and performance&lt;/h2>
+&lt;p>CloudFront caches content at edge locations, which can significantly reduce latency and improve the overall performance for users. Users receive content from the nearest edge location, reducing the round-trip time to the original S3 bucket.&lt;/p>
+&lt;h2 id="request-patterns">Request patterns&lt;/h2>
+&lt;p>CloudFront can help reduce the number of requests made directly to your S3 bucket by handling a portion of the requests at the edge locations. This can be beneficial if you have a high volume of requests for the same content.&lt;/p>
+&lt;h2 id="edge-location-data-processing-lambdaedge-and-cloudfront-functions">Edge location data processing: Lambda@Edge, and CloudFront Functions&lt;/h2>
+&lt;p>CloudFront can also perform some data processing at the edge using &lt;a class="link" href="https://aws.amazon.com/lambda/edge/" target="_blank" rel="noopener"
+>Lambda@Edge&lt;/a>, or &lt;a class="link" href="https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html" target="_blank" rel="noopener"
+>CloudFront Functions&lt;/a>. Lambda@Edge and CloudFront Functions allows us to add a computing element when serving content at edge. This includes customizing routing to S3 buckets, auth and auth, bot mitigation, serve specific content when your website is in maintenance mode, and overall improved user experience without modifying your website code.&lt;/p>
+&lt;h2 id="consider-these-points-too">Consider these points too&lt;/h2>
+&lt;p>With all the mentioed features of CloudFront for serving S3 content at edge, it&amp;rsquo;s important to consider the following aspects as well:&lt;/p>
+&lt;h3 id="cloudfront-cost">CloudFront cost&lt;/h3>
+&lt;p>While CloudFront can help reduce data transfer costs, it introduces its own costs based on the number of requests and data transferred from edge locations. If your data access patterns do not benefit from caching, i.e. requests always need to hit the backedn S3 bucket, then the return on investment (ROI) of using CloudFront for S3 content might not be as cost-effective as expected, and you might incur unnecessary additional costs.&lt;/p>
+&lt;h3 id="cache-invalidation">Cache invalidation&lt;/h3>
+&lt;p>Content Delivery Networks (CDNs) are ideal for serving static content. They are not typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, this is changing rapidly. CDN providers nowadays offer features to address these limitations as the demand for globally accessed web applications is increasing. See &lt;a class="link" href="https://aws.amazon.com/blogs/aws/amazon-cloudfront-support-for-dynamic-content" target="_blank" rel="noopener"
+>this announcement&lt;/a> from AWS in 2020.&lt;/p>
+&lt;p>If your data frequently changes and requires constant updates, you may need to have a good plan for managing cache invalidation and service costs.&lt;/p>
+&lt;h3 id="low-volume-data-transfer">Low volume data transfer&lt;/h3>
+&lt;p>For very small data-transfers, or infrequent access patterns, the cost advantage of using CloudFront for serving data from S3 might be less significant compared to fetching the data from the bucket directly.&lt;/p>
+&lt;h3 id="transfer-to-origin">Transfer to origin&lt;/h3>
+&lt;p>Data transfer from CloudFront to AWS services&amp;rsquo; origin is free, &lt;a class="link" href="https://aws.amazon.com/cloudfront/faqs/" target="_blank" rel="noopener"
+>see the General section of CloudFront FAQ&lt;/a>. However, it&amp;rsquo;s always a good idea to consult AWS documentation to understand any cost-related matters.&lt;/p>
+&lt;h3 id="consider-s3-corss-region-replication">Consider S3 Corss-Region Replication&lt;/h3>
+&lt;p>If your application does not benefit from caching but you still want to keep the S3 data close to your users (for READ only ops), then consider using S3 Corss-Region Replication instead of CloudFront.&lt;/p></description></item></channel></rss>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>k8s on Shakir</title><link>https://demo.stack.jimmycai.com/categories/k8s/</link><description>Recent content in k8s on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Tue, 30 May 2023 12:54:12 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/k8s/index.xml" rel="self" type="application/rss+xml"/><item><title>Helm basics</title><link>https://demo.stack.jimmycai.com/p/helm-basics/</link><pubDate>Tue, 30 May 2023 12:54:12 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/helm-basics/</guid><description>&lt;p>This post will cover the definition of Helm&amp;rsquo;s building blocks and basic commands.&lt;/p>
+&lt;h2 id="why-helm">Why Helm?&lt;/h2>
+&lt;p>When we intend to deploy an application to a K8s cluster, it&amp;rsquo;s important to know that Kubernetes doesn&amp;rsquo;t inherently understand our application&amp;rsquo;s requirements (and it shouldn&amp;rsquo;t).&lt;/p>
+&lt;p>What I mean by that is Kubernetes doesn&amp;rsquo;t recognize that PVC &amp;ldquo;x&amp;rdquo; is associated with Deployment &amp;ldquo;y,&amp;rdquo; which, in turn, relies on Service &amp;ldquo;z&amp;rdquo;, and without these components, the application will not run as intended. All what Kubernetes knows is to manage its resources and thrive on keeping cluster&amp;rsquo;s objects alive.&lt;/p>
+&lt;p>So we needed a way to &amp;ldquo;bundle&amp;rdquo; our Kubernetes application for better release management. We wanted to put the pieces together. Out API app needs a Deployment that requires a Service and we need a storage for that. So we all these parts should deployed, removed, updated, versioned, and shared together, becasue these parts represent a specific application.&lt;/p>
+&lt;p>Helm is designed to know about our application. That&amp;rsquo;s why it&amp;rsquo;s called a package manager because it looks at our application&amp;rsquo;s K8s manifests as a group (package). It allows us to look at our Kubernetes application as &amp;ldquo;an application&amp;rdquo; rather than a collection of Kubernetes objects.&lt;/p>
+&lt;h2 id="helm-chart">Helm Chart&lt;/h2>
+&lt;p>A Helm Chart is a &lt;strong>packaged&lt;/strong>, &lt;strong>deployable unit&lt;/strong> that comprises &lt;strong>all configurations&lt;/strong> needed for deploying an application to a Kubernetes cluster.&lt;/p>
+&lt;p>Let&amp;rsquo;s break this statement down:&lt;/p>
+&lt;ul>
+&lt;li>
+&lt;p>Packaged: A Helm chart is a package for Kubernetes applications, similar to how a Debian apt package bundles software for easy installation on Linux.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Deployable unit: A Helm chart can be deployed to a K8s cluster, similar to the other K8s objects. It has all&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>Includes all configuration files: Within a chart, you&amp;rsquo;ll add all the required K8s manifests (such as service, deployment, replicaset, etc.), that your application needs. Making it easy to deploy and manage our application within a Kubernetes cluster.&lt;/p>
+&lt;/li>
+&lt;/ul>
+&lt;p>By combining these three characteristics, you can deliver your application to any Kubernetes cluster of your choice easily. Not only that, but you can also share your chart (i.e. your applications) so others can deploy it to their cluster too.&lt;/p>
+&lt;h2 id="helm-release">Helm Release&lt;/h2>
+&lt;p>A Helm &amp;ldquo;release&amp;rdquo; is a running instance of a Helm chart. When you install a Helm chart, it generates a release with a unique name and version. You can install a chart multiple times, each will have its unique name, and optinally, you can use different variables and parameters.&lt;/p>
+&lt;p>For example, when you install an Nginx chart, the &lt;em>installed instance&lt;/em> of the chart is called a &amp;ldquo;release&amp;rdquo;. You can have one or more Nginx releases deployed from the same chart; each installation has its unique name.&lt;/p>
+&lt;h2 id="helm-repository">Helm Repository&lt;/h2>
+&lt;p>A &amp;ldquo;repository&amp;rdquo; in Helm refers to a storage location where Helm charts are stored. Like any artifact repository, it can be accessed and shared. It can be a remote or local.You can interact with Helm repositories using the &lt;code>helm repo &amp;lt;command&amp;gt;&lt;/code> to add, update, or manage repositories.&lt;/p>
+&lt;h2 id="helm-hub">Helm Hub&lt;/h2>
+&lt;p>A &amp;ldquo;hub&amp;rdquo; refers to a centralized &lt;strong>platform&lt;/strong> that hosts a collection of repositores such as the default one Artifact Hub (&lt;a class="link" href="https://artifacthub.io/" target="_blank" rel="noopener"
+>artifacthub.io&lt;/a>). These hubs provide a user-friendly interface for discovering and exploring Helm repositories.&lt;/p>
+&lt;h3 id="helm-hub-vs-repo">Helm Hub vs. Repo&lt;/h3>
+&lt;p>Think of Helm repositories like &lt;em>storage&lt;/em> places where Helm charts are stored and Helm hub is like a platform that offers a &lt;em>search&lt;/em> service to find Helm charts from different repositories. So basically, Helm Hub makes it easy to find and interact with Helm charts, while Helm repositories store the actual chart files.&lt;/p>
+&lt;h2 id="commands-cheat-sheet">Commands cheat sheet&lt;/h2>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt"> 10
+&lt;/span>&lt;span class="lnt"> 11
+&lt;/span>&lt;span class="lnt"> 12
+&lt;/span>&lt;span class="lnt"> 13
+&lt;/span>&lt;span class="lnt"> 14
+&lt;/span>&lt;span class="lnt"> 15
+&lt;/span>&lt;span class="lnt"> 16
+&lt;/span>&lt;span class="lnt"> 17
+&lt;/span>&lt;span class="lnt"> 18
+&lt;/span>&lt;span class="lnt"> 19
+&lt;/span>&lt;span class="lnt"> 20
+&lt;/span>&lt;span class="lnt"> 21
+&lt;/span>&lt;span class="lnt"> 22
+&lt;/span>&lt;span class="lnt"> 23
+&lt;/span>&lt;span class="lnt"> 24
+&lt;/span>&lt;span class="lnt"> 25
+&lt;/span>&lt;span class="lnt"> 26
+&lt;/span>&lt;span class="lnt"> 27
+&lt;/span>&lt;span class="lnt"> 28
+&lt;/span>&lt;span class="lnt"> 29
+&lt;/span>&lt;span class="lnt"> 30
+&lt;/span>&lt;span class="lnt"> 31
+&lt;/span>&lt;span class="lnt"> 32
+&lt;/span>&lt;span class="lnt"> 33
+&lt;/span>&lt;span class="lnt"> 34
+&lt;/span>&lt;span class="lnt"> 35
+&lt;/span>&lt;span class="lnt"> 36
+&lt;/span>&lt;span class="lnt"> 37
+&lt;/span>&lt;span class="lnt"> 38
+&lt;/span>&lt;span class="lnt"> 39
+&lt;/span>&lt;span class="lnt"> 40
+&lt;/span>&lt;span class="lnt"> 41
+&lt;/span>&lt;span class="lnt"> 42
+&lt;/span>&lt;span class="lnt"> 43
+&lt;/span>&lt;span class="lnt"> 44
+&lt;/span>&lt;span class="lnt"> 45
+&lt;/span>&lt;span class="lnt"> 46
+&lt;/span>&lt;span class="lnt"> 47
+&lt;/span>&lt;span class="lnt"> 48
+&lt;/span>&lt;span class="lnt"> 49
+&lt;/span>&lt;span class="lnt"> 50
+&lt;/span>&lt;span class="lnt"> 51
+&lt;/span>&lt;span class="lnt"> 52
+&lt;/span>&lt;span class="lnt"> 53
+&lt;/span>&lt;span class="lnt"> 54
+&lt;/span>&lt;span class="lnt"> 55
+&lt;/span>&lt;span class="lnt"> 56
+&lt;/span>&lt;span class="lnt"> 57
+&lt;/span>&lt;span class="lnt"> 58
+&lt;/span>&lt;span class="lnt"> 59
+&lt;/span>&lt;span class="lnt"> 60
+&lt;/span>&lt;span class="lnt"> 61
+&lt;/span>&lt;span class="lnt"> 62
+&lt;/span>&lt;span class="lnt"> 63
+&lt;/span>&lt;span class="lnt"> 64
+&lt;/span>&lt;span class="lnt"> 65
+&lt;/span>&lt;span class="lnt"> 66
+&lt;/span>&lt;span class="lnt"> 67
+&lt;/span>&lt;span class="lnt"> 68
+&lt;/span>&lt;span class="lnt"> 69
+&lt;/span>&lt;span class="lnt"> 70
+&lt;/span>&lt;span class="lnt"> 71
+&lt;/span>&lt;span class="lnt"> 72
+&lt;/span>&lt;span class="lnt"> 73
+&lt;/span>&lt;span class="lnt"> 74
+&lt;/span>&lt;span class="lnt"> 75
+&lt;/span>&lt;span class="lnt"> 76
+&lt;/span>&lt;span class="lnt"> 77
+&lt;/span>&lt;span class="lnt"> 78
+&lt;/span>&lt;span class="lnt"> 79
+&lt;/span>&lt;span class="lnt"> 80
+&lt;/span>&lt;span class="lnt"> 81
+&lt;/span>&lt;span class="lnt"> 82
+&lt;/span>&lt;span class="lnt"> 83
+&lt;/span>&lt;span class="lnt"> 84
+&lt;/span>&lt;span class="lnt"> 85
+&lt;/span>&lt;span class="lnt"> 86
+&lt;/span>&lt;span class="lnt"> 87
+&lt;/span>&lt;span class="lnt"> 88
+&lt;/span>&lt;span class="lnt"> 89
+&lt;/span>&lt;span class="lnt"> 90
+&lt;/span>&lt;span class="lnt"> 91
+&lt;/span>&lt;span class="lnt"> 92
+&lt;/span>&lt;span class="lnt"> 93
+&lt;/span>&lt;span class="lnt"> 94
+&lt;/span>&lt;span class="lnt"> 95
+&lt;/span>&lt;span class="lnt"> 96
+&lt;/span>&lt;span class="lnt"> 97
+&lt;/span>&lt;span class="lnt"> 98
+&lt;/span>&lt;span class="lnt"> 99
+&lt;/span>&lt;span class="lnt">100
+&lt;/span>&lt;span class="lnt">101
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Helm works similarly to Linux package managers:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 1. You add, update, or delete a repository,&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># 2. Install, and delete Helm charts.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># By default, Helm uses https://artifacthub.io for charts. &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Helm deploys K8s resources, this means that Helm is aware of K8s namespaces.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Helm will always use the default namespace of the currently activated context &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># in your K8s cluster. &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Similar to kubectl, use the &amp;#39;-n&amp;#39; flag to interact with K8s namespaces &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># while working with Helm commands.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1">#&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Search the default Helm hub&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm search hub &amp;lt;chartName&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Add a repo to your local helm setup&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm repo add bitnami https://charts.bitnami.com/bitnami
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Refresh helm packages list&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm repo update
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Show added repos&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm repo list
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Search for a chart in the previously added repos.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The `CHART VERSION` shows the chart&amp;#39;s version, and&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the `APP VERSION` column shows the application&amp;#39;s version (e.g. Nginx&amp;#39;s version).&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># This command will list the latest version available in the repository.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm search repo &amp;lt;chartName&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># List all `APP VERSION` for a specific package&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm search repo --versions &amp;lt;chartName&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Install a chart:&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can install the same chart multiple times with different names.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Chart names must be unique. A running instance of a chart is called `release`.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Sticking to a naming scheme for your releases is always a good idea.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install &lt;span class="o">[&lt;/span>specify-release-name&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>chart-name&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install my-release-1 bitnami/nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install my-release-2 bitnami/nginx -n dev-namespace
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># List installed packages&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm list
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm ls
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm ls -a &lt;span class="c1"># list `all` including failing deployments&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm ls --all-namespaces
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Uninstall a chart&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm uninstall my-release-1
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Download (+ unpack) the chart but don&amp;#39;t install it &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm pull --untar bitnami/wordpress
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Once downloaded, you can install the chart&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install &lt;span class="o">[&lt;/span>release-4&lt;span class="o">]&lt;/span> ./&amp;lt;chart&amp;gt;
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install my-release ./wordpress
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Install a specific version of a chart (this is `CHART VERSION`)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install &lt;span class="o">[&lt;/span>release&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>repo/chart&lt;span class="o">]&lt;/span> --version &lt;span class="o">[&lt;/span>version&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install my-release bitnami/nginx --version 9.9.4
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Upgrade a release to the latest version available in the repo.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># use `--version` followed by chart version number to upgrade to &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># a certain version.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm upgrade &lt;span class="o">[&lt;/span>release&lt;span class="o">]&lt;/span> &lt;span class="o">[&lt;/span>chart&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm upgrade my-release bitnami/nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can &amp;#39;downgrade&amp;#39; using the same command but with an older `--version` number&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm upgrade my-release bitnami/nginx --version 9.9.0
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># The upgrade command also takes variables updating flags. &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Here, we are changing the default service type of Nginx &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># from LoadBalancer to a NodePort and the default value of &lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># the port from 80 to 8181&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm upgrade my-release --set service.type&lt;span class="o">=&lt;/span>NodePort --set service.ports.http&lt;span class="o">=&lt;/span>&lt;span class="m">8181&lt;/span> bitnami/nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># To retain the previously modified values when upgrading a release&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm upgrade my-release --version 9.9.5 --reuse-values bitnami/nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Show details of a chart without installing it&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm show chart bitnami/nginx
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Helm `get` to pull extended info about a release&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># you can get release&amp;#39;s -&amp;gt; &amp;#39;manifest&amp;#39;, &amp;#39;values&amp;#39;, &amp;#39;notes&amp;#39;, &amp;#39;hooks&amp;#39;, &amp;#39;all&amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm get manifest &lt;span class="o">[&lt;/span>releaseName&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm get values &lt;span class="o">[&lt;/span>releaseName&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm get all &lt;span class="o">[&lt;/span>releaseName&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Get status of a release (deplyed, failed ...etc)&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm status &lt;span class="o">[&lt;/span>release&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># List all available values in a chart without downloading it.&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># if you&amp;#39;re looking for specific flag, pipe the output to grep i.e. &amp;#39; | grep &amp;#39;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm show values &lt;span class="o">[&lt;/span>repo/chart&lt;span class="o">]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm show values bitnami/apache &lt;span class="p">|&lt;/span> grep replicaCount
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Then to update a default variable, use the &amp;#39;--set&amp;#39; flag&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm install apache-release bitnami/apache --set &lt;span class="nv">replicaCount&lt;/span>&lt;span class="o">=&lt;/span>&lt;span class="m">2&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># Control the output using -o [options]&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">helm search hub nginx-ingress -o yaml
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div></description></item></channel></rss>

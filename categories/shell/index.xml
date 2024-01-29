@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>shell on Shakir</title><link>https://demo.stack.jimmycai.com/categories/shell/</link><description>Recent content in shell on Shakir</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Thu, 22 Jun 2023 08:34:22 -0700</lastBuildDate><atom:link href="https://demo.stack.jimmycai.com/categories/shell/index.xml" rel="self" type="application/rss+xml"/><item><title>Importing functions in shell scripting</title><link>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</link><pubDate>Thu, 22 Jun 2023 08:34:22 -0700</pubDate><guid>https://demo.stack.jimmycai.com/p/importing-functions-in-shell-scripting/</guid><description>&lt;p>In this post, I will show you how to &lt;em>source&lt;/em> (load) a Bash function from a local or remote source (e.g. a file in Github) into the current shell.&lt;/p>
+&lt;p>In shell scripting, using the &lt;code>source&lt;/code> command (also known as the dot &amp;ldquo;&lt;code>.&lt;/code>&amp;rdquo; command) allows to read and execute commands from a script file, and load its content into your current shell. This makes all variables, functions, and aliases defined in that script file become available in the current shell session.&lt;/p>
+&lt;h2 id="load-from-local-file">Load from local file&lt;/h2>
+&lt;p>Similar to importing libraries in programming languages, you can organize your freqnetly used code in different files in your project directory and then load them as you need. See this example:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt"> 1
+&lt;/span>&lt;span class="lnt"> 2
+&lt;/span>&lt;span class="lnt"> 3
+&lt;/span>&lt;span class="lnt"> 4
+&lt;/span>&lt;span class="lnt"> 5
+&lt;/span>&lt;span class="lnt"> 6
+&lt;/span>&lt;span class="lnt"> 7
+&lt;/span>&lt;span class="lnt"> 8
+&lt;/span>&lt;span class="lnt"> 9
+&lt;/span>&lt;span class="lnt">10
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-text" data-lang="text">&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"># Project directory tree
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">root
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── lib/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">├── var/
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│ └── stuff.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">│
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">└── main_script.sh
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>If you want to import a function from &lt;code>root/lib/common.sh&lt;/code> to &lt;code>main_script.sh&lt;/code>, you only need to source that file:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;span class="lnt">5
+&lt;/span>&lt;span class="lnt">6
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>&lt;span class="c1"># *** main_script.sh ***&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="nb">source&lt;/span> lib/common.sh
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># code&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># .&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;h2 id="load-from-remote-file">Load from remote file&lt;/h2>
+&lt;p>To load script content into your current shell without downloading the remote file, you can &lt;code>curl&lt;/code> the content of the script and redirect it to a &lt;code>source&lt;/code> command as the following (don&amp;rsquo;t forget the &lt;code>-s&lt;/code> flag to silence curl&amp;rsquo;s download info):&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="c1"># You can use a dot `.` instead of `source` as well&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">$ &lt;span class="nb">source&lt;/span> &amp;lt;&lt;span class="o">(&lt;/span>curl -s https://raw.githubusercontent.com/shakir85/utils/main/print_hello&lt;span class="o">)&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>Remote file content:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;span class="lnt">3
+&lt;/span>&lt;span class="lnt">4
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">&lt;span class="cp">#!/bin/bash
+&lt;/span>&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="cp">&lt;/span>print_hello&lt;span class="o">()&lt;/span> &lt;span class="o">{&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl"> &lt;span class="nb">echo&lt;/span> &lt;span class="s2">&amp;#34;This is the boring hello world message&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">&lt;span class="o">}&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>After that, you can invoke the &lt;code>print_hello&lt;/code> function from your current shell:&lt;/p>
+&lt;div class="highlight">&lt;div class="chroma">
+&lt;table class="lntable">&lt;tr>&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code>&lt;span class="lnt">1
+&lt;/span>&lt;span class="lnt">2
+&lt;/span>&lt;/code>&lt;/pre>&lt;/td>
+&lt;td class="lntd">
+&lt;pre tabindex="0" class="chroma">&lt;code class="language-sh" data-lang="sh">&lt;span class="line">&lt;span class="cl">$ print_hello
+&lt;/span>&lt;/span>&lt;span class="line">&lt;span class="cl">This is the boring hello world message
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/td>&lt;/tr>&lt;/table>
+&lt;/div>
+&lt;/div>&lt;p>This technique allows us to set environment variables, import functions, or modify the current shell&amp;rsquo;s behavior using the contents of a remote script. This is a cool trick when you do not want to persist the data of the remote script on the host or want to load functions or variables to the current working shell on the fly. The downside, though, is that if the remote content vanishes, your script could bust!&lt;/p></description></item></channel></rss>
