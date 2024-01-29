@@ -21,11 +21,9 @@ CloudFront caches content at edge locations, which can significantly reduce late
 
 CloudFront can help reduce the number of requests made directly to your S3 bucket by handling a portion of the requests at the edge locations. This can be beneficial if you have a high volume of requests for the same content.
 
-## Edge location data processing: Lambda@Edge
+## Edge location data processing: Lambda@Edge, and CloudFront Functions
 
-CloudFront can also perform some data processing at the edge using [Lambda@Edge](https://aws.amazon.com/lambda/edge/). Lambda@Edge allows us to add a computing element when serving content at edge. For example, you can customize routing to S3 buckets, serve specific content when your website is in maintenance mode, and overall improved user experience without modifying your website code.
-
-Overall, utilizing Lambda@Edge can reduce the load on your origin server (in this case, S3) and open the door for a lot of features that you can levrage.
+CloudFront can also perform some data processing at the edge using [Lambda@Edge](https://aws.amazon.com/lambda/edge/), or [CloudFront Functions](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/cloudfront-functions.html). Lambda@Edge and CloudFront Functions allows us to add a computing element when serving content at edge. This includes customizing routing to S3 buckets, auth and auth, bot mitigation, serve specific content when your website is in maintenance mode, and overall improved user experience without modifying your website code.
 
 ## Consider these points too
 
