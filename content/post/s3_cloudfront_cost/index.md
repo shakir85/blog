@@ -35,13 +35,13 @@ While CloudFront can help reduce data transfer costs, it introduces its own cost
 
 ### Cache invalidation
 
-Content Delivery Networks (CDNs) are ideal for serving static content. They are not typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, some CDN providers offer features to address these limitations such as routing optimization and cache invalidation.
+Content Delivery Networks (CDNs) are ideal for serving static content. They are not typically a good option for dynamic content mainly due to their caching and latency handling characteristics. However, this is changing rapidly. CDN providers nowadays offer features to address these limitations as the demand for globally accessed web applications is increasing. See [this announcement](https://aws.amazon.com/blogs/aws/amazon-cloudfront-support-for-dynamic-content) from AWS in 2020.
 
-If your data frequently changes and requires real-time updates (dynamic content), you may need to manage cache invalidation carefully with CloudFront, as it may introduce additional complexity and costs.
+If your data frequently changes and requires constant updates, you may need to have a good plan for managing cache invalidation and service costs.
 
 ### Low volume data transfer
 
-For very small data-transfers, or infrequent access patterns, the cost advantage of CloudFront + S3 might be less significant compared to fetching the data from S3 directly.
+For very small data-transfers, or infrequent access patterns, the cost advantage of using CloudFront for serving data from S3 might be less significant compared to fetching the data from the bucket directly.
 
 ### Transfer to origin
 
